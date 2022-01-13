@@ -9,6 +9,8 @@ public class queries {
     private static PreparedStatement pstmt = null;
     private static ResultSet rs = null;
 
+    private static int SIZE_NUMBER_PART_ID = 4;
+
     public static void test() throws SQLException {
         connect();
         String maxId = queries.maxIdActivo();
@@ -19,26 +21,23 @@ public class queries {
         System.out.println(newId);
     }
 
+    // partimos do pressuposto que o id nunca irá ultrapassar a parte do numero
     private static String increaseId(String id){
         String nextId = id;
         char firstChar = nextId.charAt(0);
         nextId = nextId.substring(1);
         int numPart = Integer.parseInt(nextId);
-
-        nextId = firstChar + String.valueOf(numPart);
-
+        nextId = firstChar + fillZeros(numPart+1,SIZE_NUMBER_PART_ID);
         return nextId;
     }
 
     private static String fillZeros(int number, int numberOfDigits){
         String numb = String.valueOf(number);
-        String newId = String.valueOf(number);
+        String newId = "";
         if(numb.length()>numberOfDigits) return "";
         for(int n=numb.length(); n<numberOfDigits; n++){
-            numb += " ";
-        }
-
-        return numb = String.valueOf(number);
+            newId += "0";
+        }return newId += String.valueOf(number);
     }
 
     private static void connect() throws SQLException {
@@ -96,15 +95,17 @@ public class queries {
 
     }
 
-    public static void novoActivo() throws SQLException {
+    //colocar marca e modelo a null se tal n for especificado ou ter 2 metodos, um com marca e modelo e outro sem
+    public static void novoActivo(String nome) throws SQLException {
         try {
             connect();
             stmt = con.createStatement();
             pstmt = con.prepareStatement("INSERT INTO ACTIVO (id, nome, estado, dtaquisicao, marca, modelo, localizacao, idactivotopo, tipo, empresa, pessoa) " +
                     "VALUES (?,?,?,?,?,?,?,?,?,?,?)");
             //INSERT INTO ACTIVO(id, nome, estado, dtaquisicao, marca, modelo, localizacao, idactivotopo, tipo, empresa, pessoa)VALUES ('a0001','cena1','1','2021-02-02',NULL,NULL,'ali','a0001',3,1,2)
-            pstmt.setString(1, maxIdActivo());    //ident reserva
-
+            pstmt.setString(1, increaseId(maxIdActivo()));    //ident reserva
+            pstmt.setString(2,nome);
+            pstmt.setString(3,estado);
 
             pstmt.executeUpdate();
         } catch (SQLException e) {
