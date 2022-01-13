@@ -10,7 +10,9 @@ public class App {
         //test connection
         //queries.exampleTest();
 
-        optionsMenu();
+        //optionsMenu();
+
+        queries.test();
 
 
     }

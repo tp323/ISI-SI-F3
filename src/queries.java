@@ -9,6 +9,37 @@ public class queries {
     private static PreparedStatement pstmt = null;
     private static ResultSet rs = null;
 
+    public static void test() throws SQLException {
+        connect();
+        String maxId = queries.maxIdActivo();
+        closeConnection();
+        System.out.println(maxId);
+
+        String newId = increaseId(maxId);
+        System.out.println(newId);
+    }
+
+    private static String increaseId(String id){
+        String nextId = id;
+        char firstChar = nextId.charAt(0);
+        nextId = nextId.substring(1);
+        int numPart = Integer.parseInt(nextId);
+
+        nextId = firstChar + String.valueOf(numPart);
+
+        return nextId;
+    }
+
+    private static String fillZeros(int number, int numberOfDigits){
+        String numb = String.valueOf(number);
+        String newId = String.valueOf(number);
+        if(numb.length()>numberOfDigits) return "";
+        for(int n=numb.length(); n<numberOfDigits; n++){
+            numb += " ";
+        }
+
+        return numb = String.valueOf(number);
+    }
 
     private static void connect() throws SQLException {
         try {
@@ -71,10 +102,11 @@ public class queries {
             stmt = con.createStatement();
             pstmt = con.prepareStatement("INSERT INTO ACTIVO (id, nome, estado, dtaquisicao, marca, modelo, localizacao, idactivotopo, tipo, empresa, pessoa) " +
                     "VALUES (?,?,?,?,?,?,?,?,?,?,?)");
-            rs = stmt.executeQuery("INSERT INTO ACTIVO(id, nome, estado, dtaquisicao, marca, modelo, localizacao, idactivotopo, tipo, empresa, pessoa)\n" +
-                    "VALUES ('a0001','cena1','1','2021-02-02',NULL,NULL,'ali','a0001',3,1,2),");
-            pstmt.setInt(1, maxIdActivo()+1);    //ident reserva
+            //INSERT INTO ACTIVO(id, nome, estado, dtaquisicao, marca, modelo, localizacao, idactivotopo, tipo, empresa, pessoa)VALUES ('a0001','cena1','1','2021-02-02',NULL,NULL,'ali','a0001',3,1,2)
+            pstmt.setString(1, maxIdActivo());    //ident reserva
 
+
+            pstmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {
@@ -82,13 +114,12 @@ public class queries {
         }
     }
 
-    private static int maxIdActivo() throws SQLException {
-        int maxInt = -1;
+    // FECHO E VOLTO A LIGAR A CON/LIMPAR RECURSOS
+    private static String maxIdActivo() throws SQLException {
         stmt = con.createStatement();
         rs = stmt.executeQuery("SELECT MAX(id) FROM ACTIVO");
         rs.next();
-        maxInt = rs.getInt(1);
-        return maxInt;
+        return rs.getString(1);
     }
 
     public static void substituirElem() {
