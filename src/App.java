@@ -2,14 +2,22 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 
+
 public class App {
     public static Scanner input = new Scanner(System.in);
+    private static final Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+    private static final int CURRENT_YEAR = cal.get(Calendar.YEAR);
+    private static final int CURRENT_MONTH = cal.get(Calendar.MONTH)+1; //STARTS COUNTING ON 0 = JAN
+    //private static final String[] ATR_DISC_VALUES = {"P","NP"};
+
+
 
 
     public static void main(String[] args) throws SQLException {
         //test connection
         //queries.exampleTest();
 
+        //optionsMenuDisplay();
         //optionsMenu();
 
         queries.test();
@@ -20,18 +28,40 @@ public class App {
     private static void optionsMenu() throws SQLException {
         optionsMenuDisplay();
         switch (getValInt()) {
-            case 1 -> queries.novoActivo();
+            case 1 -> novoActivo();
             case 2 -> queries.substituirElem();
             case 3 -> queries.activoForaServico();
             case 4 -> queries.custoTotalActivo();
-            case 5 -> queries.querrie2d();
-            case 6 -> queries.querrie2e();
-            case 7 -> queries.querrie3c();
-            case 8 -> queries.querrie3d();
+            case 5 -> queries.query2d();
+            case 6 -> queries.query2e();
+            case 7 -> queries.query3c();
+            case 8 -> queries.query3d();
             case 9 -> exit();
             default -> System.err.println("Opção não reconhecida");
         }
     }
+
+    private static void novoActivo() throws SQLException {
+        //String nome, Boolean estado, Date dt, String marca, String modelo, String local, String idactivotp, int tipo, int empresa, int pessoa
+
+        System.out.println("Inserir novo Activo na Base de dados");
+        System.out.println("Insira os seguintes dados relativos a um novo Activo");
+        String nome = getValString("Nome");
+        int estadoBol = getValInt("Estado");
+        boolean estado = estadoBol == 1;
+        String data = getDate("Data Aquisição");
+        String marca = getValString("Marca");
+        String modelo = getValString("Modelo");
+        String local = getValString("Localização");
+        String idactivotp = getValString("Id Activo Topo");
+        int tipo = getValInt("Tipo");
+        int empresa = getValInt("empresa");
+        int pessoa = getValInt("pessoa");
+
+        getValInt("");
+        queries.novoActivo(nome, estado, data, marca, modelo, local, idactivotp, tipo, empresa, pessoa);
+    }
+
 
     private static void optionsMenuDisplay() {
         System.out.println("Gestão de manutenção de activos físicos");
@@ -81,12 +111,42 @@ public class App {
         if(numRows == 1) System.out.println("Não existem valores para a interrogação feitas");
     }
 
+    private static int getValInt(String inputInstructions){
+        System.out.println(inputInstructions);
+        System.out.print("> ");
+        int val = input.nextInt();
+        //consume rest of line
+        input.nextLine();
+        return val;
+    }
+
+    private static String getValString(String inputInstructions){
+        System.out.println(inputInstructions);
+        System.out.print("> ");
+        return input.nextLine();
+    }
+
     private static int getValInt(){
         System.out.print("> ");
         int val = input.nextInt();
         //consume rest of line
         input.nextLine();
         return val;
+    }
+
+    private static String getValString(){
+        System.out.print("> ");
+        return input.nextLine();
+    }
+
+    private static String getDate(String inputInstructions) {
+        System.out.println(inputInstructions);
+        int ano = getValInt("Ano");
+        if (ano < 1900 || ano > 2022) {}
+
+        int mes = getValInt("Mês");
+        int dia = getValInt("Dia");
+        return "" + ano + "-" + mes + "-" + dia;
     }
 
     private static void exit() throws SQLException {
