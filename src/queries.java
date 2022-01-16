@@ -106,8 +106,7 @@ public class queries {
                 return false;
             }
             lastTeam=currentTeam;
-        }
-        return true;
+        }return true;
     }
 
     public static void checkRestrictionActivohierarchy() {
@@ -138,26 +137,23 @@ public class queries {
         try {
             connect();
             stmt = con.createStatement();
-            pstmt = con.prepareStatement("INSERT INTO ACTIVO (id, nome, estado, dtaquisicao, marca, modelo, localizacao, idactivotopo, tipo, empresa, pessoa) " +
-                    "VALUES (?,?,?,?,?,?,?,?,?,?,?)");
+            pstmt = con.prepareStatement("INSERT INTO ACTIVO (nome, estado, dtaquisicao, marca, modelo, localizacao, idactivotopo, tipo, empresa, pessoa) " +
+                    "VALUES (?,?::bit,?,?,?,?,?,?,?,?)");
             //INSERT INTO ACTIVO(id, nome, estado, dtaquisicao, marca, modelo, localizacao, idactivotopo, tipo, empresa, pessoa)VALUES ('a0001','cena1','1','2021-02-02',NULL,NULL,'ali','a0001',3,1,2)
-            pstmt.setString(1, increaseId(maxIdActivo()));    //ident reserva
-            pstmt.setString(2,nome);
+            //pstmt.setString(1, increaseId(maxIdActivo()));    //ident reserva
+            pstmt.setString(1,nome);
             //como passar bit?
-            char temp = '0';
-            if(estado) temp = '1';
-            String tempString = "" + temp;
             //estado
-            pstmt.setString(3,tempString);
+            pstmt.setBoolean(2,estado);
             //pstmt.setDate(4,dt);
-            pstmt.setString(4,dt);
-            pstmt.setString(5,marca);
-            pstmt.setString(6,modelo);
-            pstmt.setString(7,local);
-            pstmt.setString(8,idactivotp);
-            pstmt.setInt(9,tipo);
-            pstmt.setInt(10,empresa);
-            pstmt.setInt(11,pessoa);
+            pstmt.setString(3,dt);
+            pstmt.setString(4,marca);
+            pstmt.setString(5,modelo);
+            pstmt.setString(6,local);
+            pstmt.setString(7,idactivotp);
+            pstmt.setInt(8,tipo);
+            pstmt.setInt(9,empresa);
+            pstmt.setInt(10,pessoa);
             pstmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
