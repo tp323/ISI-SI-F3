@@ -26,7 +26,8 @@ public class queries {
         query3c();
         query3d();*/
         //System.out.println(checkEquipasMin2Elements());
-        System.out.println(getEquipaFromId(10));
+        System.out.println(getEquipaFromId(1));
+        substituirElem(1,2);
         //novoActivo("test",true,"2020-02-03",null,null,"Lisboa","Z0005",1,1,1);
     }
 
@@ -127,7 +128,6 @@ public class queries {
     public static void novoActivo(String nome, Boolean estado, String dt, String marca, String modelo, String local, String idactivotp, int tipo, int empresa, int pessoa) throws SQLException {
         try {
             connect();
-            stmt = con.createStatement();
             pstmt = con.prepareStatement("INSERT INTO ACTIVO (id, nome, estado, dtaquisicao, marca, modelo, localizacao, idactivotopo, tipo, empresa, pessoa) " +
                     "VALUES (?,?,?::bit,?,?,?,?,?,?,?,?)");
             //INSERT INTO ACTIVO(id, nome, estado, dtaquisicao, marca, modelo, localizacao, idactivotopo, tipo, empresa, pessoa)VALUES ('a0001','cena1','1','2021-02-02',NULL,NULL,'ali','a0001',3,1,2)
@@ -165,32 +165,33 @@ public class queries {
         return rs.getString(1);
     }
 
+    //replace é colocar lo para uma outra equipa ou eliminalo da tabela?
     public static void substituirElem(int idToReplaceOut, int idToReplaceIn) throws SQLException {
-        /*try {
-            connect();
-            stmt = con.createStatement();
-            pstmt = con.prepareStatement("INSERT INTO ACTIVO (id, nome, estado, dtaquisicao, marca, modelo, localizacao, idactivotopo, tipo, empresa, pessoa) " +
-                    "VALUES (?,?,?::bit,?,?,?,?,?,?,?,?)");
-            pstmt.setString(1, increaseId(maxIdActivo()));    //ident reserva
-            pstmt.setString(2,nome);
-            pstmt.setInt(3,estadoBit);
-            pstmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            closeConnection();
-        }*/
+        int equipa = getEquipaFromId(idToReplaceOut);
+        updateEquipaElem(idToReplaceOut,1);
+        updateEquipaElem(idToReplaceIn,equipa);
     }
 
     private static int getEquipaFromId(int id) throws SQLException {
         int equipa = -1;
         try {
             connect();
-            stmt = con.createStatement();
             pstmt = con.prepareStatement("SELECT equipa FROM PESSOA WHERE id=?");
             pstmt.setInt(1, id);    //ident reserva
             rs = pstmt.executeQuery();
             if(rs.next()) equipa = rs.getInt(1);
+        } catch (SQLException e) {e.printStackTrace();
+        } finally { closeConnection();}
+        return equipa;
+    }
+
+    private static int updateEquipaElem(int id, int equipa) throws SQLException {
+        try {
+            connect();
+            pstmt = con.prepareStatement("update PESSOA set equipa = ? where id = ?");
+            pstmt.setInt(1, equipa);
+            pstmt.setInt(2, id);
+            pstmt.executeUpdate();
         } catch (SQLException e) {e.printStackTrace();
         } finally { closeConnection();}
         return equipa;
