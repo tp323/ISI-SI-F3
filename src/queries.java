@@ -9,26 +9,19 @@ public class queries {
     private static PreparedStatement pstmt = null;
     private static ResultSet rs = null;
 
-    private static int SIZE_NUMBER_PART_ID = 4;
+    private static final int SIZE_NUMBER_PART_ID = 4;
 
     public static void test() throws SQLException {
-        /*connect();
-        String maxId = queries.maxIdActivo();
-        closeConnection();
-        System.out.println(maxId);
-
-        String newId = increaseId(maxId);
-        System.out.println(newId);*/
-
-        //queries done with fixed values only need to implement interchangeable vars and prepared statements
-        /*query2d();
-        query2e();
-        query3c();
-        query3d();*/
+        //query2d();
+        //query2e();
+        //query3c();
+        //query3d();
         //System.out.println(checkEquipasMin2Elements());
-        System.out.println(getEquipaFromId(1));
-        substituirElem(1,2);
+        //System.out.println(getEquipaFromId(1));
+        //substituirElem(1,3);
         //novoActivo("test",true,"2020-02-03",null,null,"Lisboa","Z0005",1,1,1);
+        //activoForaServico("a0001");
+        custoTotalActivo("z0002");
     }
 
     // partimos do pressuposto que o id nunca irá ultrapassar a parte do numero
@@ -37,15 +30,15 @@ public class queries {
         char firstChar = nextId.charAt(0);
         nextId = nextId.substring(1);
         int numPart = Integer.parseInt(nextId);
-        nextId = firstChar + fillZeros(numPart+1,SIZE_NUMBER_PART_ID);
+        nextId = firstChar + fillZeros(numPart+1);
         return nextId;
     }
 
-    private static String fillZeros(int number, int numberOfDigits){
+    private static String fillZeros(int number){
         String numb = String.valueOf(number);
         String newId = "";
-        if(numb.length()>numberOfDigits) return "";
-        for(int n=numb.length(); n<numberOfDigits; n++){
+        if(numb.length()> SIZE_NUMBER_PART_ID) return "";
+        for(int n = numb.length(); n< SIZE_NUMBER_PART_ID; n++){
             newId += "0";
         }return newId += String.valueOf(number);
     }
@@ -69,19 +62,6 @@ public class queries {
         } catch (Exception e) {e.printStackTrace();}
     }
 
-    public static void exampleTest() throws SQLException {
-        try {
-            connect();
-            stmt = con.createStatement();
-            rs = stmt.executeQuery("select nome, modelo, marca, localizacao from ACTIVO where estado = '1';");
-            App.printTable(rs,4);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            closeConnection();
-        }
-    }
-
     public static boolean checkEquipasMin2Elements() throws SQLException {
         //true if DB follows restriction
         boolean conditionCheck = false;
@@ -96,6 +76,20 @@ public class queries {
                     break;
                 }
             }
+        } catch (SQLException e) { e.printStackTrace();
+        } finally {closeConnection(); }
+        return conditionCheck;
+    }
+
+    public static boolean checkEquipasMinXElements(int equipa, int numElem) throws SQLException {
+        //true if DB follows restriction
+        boolean conditionCheck = false;
+        try {
+            connect();
+            pstmt = con.prepareStatement("SELECT count(equipa) FROM PESSOA where equipa = ? group by equipa order by equipa");
+            pstmt.setInt(1, equipa);
+            rs = pstmt.executeQuery();
+            if(rs.next() && rs.getInt(1)>=numElem) conditionCheck = true;
         } catch (SQLException e) { e.printStackTrace();
         } finally {closeConnection(); }
         return conditionCheck;
@@ -123,15 +117,16 @@ public class queries {
 
     }
 
-    //colocar marca e modelo a null se tal n for especificado ou ter 2 metodos, um com marca e modelo e outro sem
-    //set Strig ou set Date
+    //passar estado sempre como activo? estado=1
+    //set String ou set Date
     public static void novoActivo(String nome, Boolean estado, String dt, String marca, String modelo, String local, String idactivotp, int tipo, int empresa, int pessoa) throws SQLException {
+        String newId = increaseId(stQueryResString("SELECT MAX(id) FROM ACTIVO"));
         try {
             connect();
             pstmt = con.prepareStatement("INSERT INTO ACTIVO (id, nome, estado, dtaquisicao, marca, modelo, localizacao, idactivotopo, tipo, empresa, pessoa) " +
                     "VALUES (?,?,?::bit,?,?,?,?,?,?,?,?)");
             //INSERT INTO ACTIVO(id, nome, estado, dtaquisicao, marca, modelo, localizacao, idactivotopo, tipo, empresa, pessoa)VALUES ('a0001','cena1','1','2021-02-02',NULL,NULL,'ali','a0001',3,1,2)
-            pstmt.setString(1, increaseId(maxIdActivo()));    //ident reserva
+            pstmt.setString(1, newId);
             pstmt.setString(2,nome);
             //como passar bit?
             //estado
@@ -140,7 +135,6 @@ public class queries {
             pstmt.setInt(3,estadoBit);
             /*org.postgresql.util.PSQLException: ERROR: cannot cast type boolean to bit
             pstmt.setBoolean(3,estado);*/
-            //pstmt.setDate(4,dt);
             pstmt.setDate(4, Date.valueOf(dt));
             pstmt.setString(5,marca);
             pstmt.setString(6,modelo);
@@ -157,18 +151,16 @@ public class queries {
         }
     }
 
-    // FECHO E VOLTO A LIGAR A CON/LIMPAR RECURSOS
-    private static String maxIdActivo() throws SQLException {
-        stmt = con.createStatement();
-        rs = stmt.executeQuery("SELECT MAX(id) FROM ACTIVO");
-        rs.next();
-        return rs.getString(1);
-    }
-
-    //replace é colocar lo para uma outra equipa ou eliminalo da tabela?
+    //replace é colocar lo para uma outra equipa ou eliminar lo da tabela?
     public static void substituirElem(int idToReplaceOut, int idToReplaceIn) throws SQLException {
         int equipa = getEquipaFromId(idToReplaceOut);
-        updateEquipaElem(idToReplaceOut,1);
+        if(!checkEquipasMinXElements(getEquipaFromId(idToReplaceIn),3)){
+            System.out.println("Can't replace elements");
+            System.out.println("Team from element that would replace, would have less than 2 elements");
+            return;
+        }
+        //updateEquipaElem(idToReplaceOut,1);
+        pstUpdate("update PESSOA set equipa = null where id = ?",idToReplaceOut);
         updateEquipaElem(idToReplaceIn,equipa);
     }
 
@@ -185,7 +177,7 @@ public class queries {
         return equipa;
     }
 
-    private static int updateEquipaElem(int id, int equipa) throws SQLException {
+    private static void updateEquipaElem(int id, int equipa) throws SQLException {
         try {
             connect();
             pstmt = con.prepareStatement("update PESSOA set equipa = ? where id = ?");
@@ -194,15 +186,20 @@ public class queries {
             pstmt.executeUpdate();
         } catch (SQLException e) {e.printStackTrace();
         } finally { closeConnection();}
-        return equipa;
     }
 
-    public static void activoForaServico() {
-
+    //activo fora de serviço == estado=0?
+    //adicionar restrição ACTIVO estado=0 n sofre intervenções
+    //limpar intervenções?
+    public static void activoForaServico(String idActivo) throws SQLException {
+        pstUpdate("update ACTIVO set estado = '0' where id = ?",idActivo);
     }
 
-    public static void custoTotalActivo() {
-
+    //partimos do pressuposto que o activo tem um valor comercial estipulado na data de aquisição
+    public static void custoTotalActivo(String id) throws SQLException {
+        System.out.println(pstQuerry("select valor from (ACTIVO inner join VCOMERCIAL on id = VCOMERCIAL.activo) where dtvcomercial = dtaquisicao and id = '?'", id));
+        System.out.println(stQueryResInt("select valor from (ACTIVO inner join VCOMERCIAL on id = VCOMERCIAL.activo)" +
+                " where dtvcomercial = dtaquisicao and id = 'z0002'"));
     }
 
     public static void query2d() throws SQLException {
@@ -270,6 +267,70 @@ public class queries {
         finally {closeConnection();}
     }
 
+    private static String stQueryResString(String query) throws SQLException {
+        String res = "";
+        try {
+            connect();
+            stmt = con.createStatement();
+            rs = stmt.executeQuery(query);
+            if (rs.next()) res = rs.getString(1);
+        } catch (SQLException e) {e.printStackTrace();
+        } finally { closeConnection();}
+        return res;
+    }
 
+    private static int stQueryResInt(String query) throws SQLException {
+        int res = -1;
+        try {
+            connect();
+            stmt = con.createStatement();
+            rs = stmt.executeQuery(query);
+            if (rs.next()) res = rs.getInt(1);
+        } catch (SQLException e) {e.printStackTrace();
+        } finally { closeConnection();}
+        return res;
+    }
 
+    private static int pstQuerry(String query, String val) throws SQLException {
+        int res = -1;
+        try {
+            connect();
+            pstmt = con.prepareStatement(query);
+            pstmt.setString(1, val);
+            pstmt.executeQuery();
+            if(rs.next()) res = rs.getInt(1);
+        } catch (SQLException e) {e.printStackTrace();
+        } finally { closeConnection();}
+        return res;
+    }
+
+    private static void pstQuerry(String query, int val) throws SQLException {
+        try {
+            connect();
+            pstmt = con.prepareStatement(query);
+            pstmt.setInt(1, val);
+            pstmt.executeQuery();
+        } catch (SQLException e) {e.printStackTrace();
+        } finally { closeConnection();}
+    }
+
+    private static void pstUpdate(String query, String val) throws SQLException {
+        try {
+            connect();
+            pstmt = con.prepareStatement(query);
+            pstmt.setString(1, val);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {e.printStackTrace();
+        } finally { closeConnection();}
+    }
+
+    private static void pstUpdate(String query, int val) throws SQLException {
+        try {
+            connect();
+            pstmt = con.prepareStatement(query);
+            pstmt.setInt(1, val);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {e.printStackTrace();
+        } finally { closeConnection();}
+    }
 }

@@ -30,17 +30,16 @@ public class App {
         switch (getValInt()) {
             case 1 -> novoActivo();
             case 2 -> substituirElem();
-            case 3 -> queries.activoForaServico();
-            case 4 -> queries.custoTotalActivo();
+            case 3 -> activoForaServico();
+            /*case 4 -> queries.custoTotalActivo();
             case 5 -> queries.query2d();
             case 6 -> queries.query2e();
             case 7 -> queries.query3c();
-            case 8 -> queries.query3d();
+            case 8 -> queries.query3d();*/
             case 9 -> exit();
             default -> System.err.println("Opção não reconhecida");
         }
     }
-
 
 
     private static void novoActivo() throws SQLException {
@@ -66,6 +65,10 @@ public class App {
 
     private static void substituirElem() throws SQLException {
         queries.substituirElem(1,2);
+    }
+
+    private static void activoForaServico() throws SQLException {
+        //queries.activoForaServico();
     }
 
     private static void optionsMenuDisplay() {
