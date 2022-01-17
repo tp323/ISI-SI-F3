@@ -29,7 +29,7 @@ public class App {
         optionsMenuDisplay();
         switch (getValInt()) {
             case 1 -> novoActivo();
-            case 2 -> queries.substituirElem();
+            case 2 -> substituirElem();
             case 3 -> queries.activoForaServico();
             case 4 -> queries.custoTotalActivo();
             case 5 -> queries.query2d();
@@ -40,6 +40,8 @@ public class App {
             default -> System.err.println("Opção não reconhecida");
         }
     }
+
+
 
     private static void novoActivo() throws SQLException {
         //String nome, Boolean estado, Date dt, String marca, String modelo, String local, String idactivotp, int tipo, int empresa, int pessoa
@@ -62,6 +64,9 @@ public class App {
         queries.novoActivo(nome, estado, data, marca, modelo, local, idactivotp, tipo, empresa, pessoa);
     }
 
+    private static void substituirElem() throws SQLException {
+        queries.substituirElem(1,2);
+    }
 
     private static void optionsMenuDisplay() {
         System.out.println("Gestão de manutenção de activos físicos");

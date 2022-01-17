@@ -25,7 +25,9 @@ public class queries {
         query2e();
         query3c();
         query3d();*/
-        checkEquipasMin2Elements();
+        //System.out.println(checkEquipasMin2Elements());
+        System.out.println(getEquipaFromId(10));
+        //novoActivo("test",true,"2020-02-03",null,null,"Lisboa","Z0005",1,1,1);
     }
 
     // partimos do pressuposto que o id nunca irá ultrapassar a parte do numero
@@ -79,34 +81,23 @@ public class queries {
         }
     }
 
-    public static void checkEquipasMin2Elements() throws SQLException {
+    public static boolean checkEquipasMin2Elements() throws SQLException {
+        //true if DB follows restriction
+        boolean conditionCheck = false;
         try {
             connect();
             stmt = con.createStatement();
-            rs = stmt.executeQuery("SELECT equipa FROM PESSOA order by equipa");
-            //prints true if DB follows restriction
-            System.out.println(min2Elements(rs));
+            rs = stmt.executeQuery("SELECT equipa, count(equipa) FROM PESSOA group by equipa order by equipa");
+            while (rs.next()) {
+                if(rs.getInt(2)>=2) {conditionCheck = true;
+                }else {
+                    conditionCheck = false;
+                    break;
+                }
+            }
         } catch (SQLException e) { e.printStackTrace();
         } finally {closeConnection(); }
-
-    }
-
-    private static boolean min2Elements(ResultSet rs) throws SQLException {
-        int currentTeam = -1;
-        int lastTeam = -1;
-        boolean min2Elements = false;
-        while (rs.next()) {
-            currentTeam = rs.getInt(1);
-            if(lastTeam != -1 && currentTeam == lastTeam){
-                // all teams have 2 elements
-                min2Elements = true;
-            }
-            if(lastTeam != -1 && currentTeam != lastTeam && !min2Elements){
-                // atleast 1 does not have min 2 elements
-                return false;
-            }
-            lastTeam=currentTeam;
-        }return true;
+        return conditionCheck;
     }
 
     public static void checkRestrictionActivohierarchy() {
@@ -137,23 +128,27 @@ public class queries {
         try {
             connect();
             stmt = con.createStatement();
-            pstmt = con.prepareStatement("INSERT INTO ACTIVO (nome, estado, dtaquisicao, marca, modelo, localizacao, idactivotopo, tipo, empresa, pessoa) " +
-                    "VALUES (?,?::bit,?,?,?,?,?,?,?,?)");
+            pstmt = con.prepareStatement("INSERT INTO ACTIVO (id, nome, estado, dtaquisicao, marca, modelo, localizacao, idactivotopo, tipo, empresa, pessoa) " +
+                    "VALUES (?,?,?::bit,?,?,?,?,?,?,?,?)");
             //INSERT INTO ACTIVO(id, nome, estado, dtaquisicao, marca, modelo, localizacao, idactivotopo, tipo, empresa, pessoa)VALUES ('a0001','cena1','1','2021-02-02',NULL,NULL,'ali','a0001',3,1,2)
-            //pstmt.setString(1, increaseId(maxIdActivo()));    //ident reserva
-            pstmt.setString(1,nome);
+            pstmt.setString(1, increaseId(maxIdActivo()));    //ident reserva
+            pstmt.setString(2,nome);
             //como passar bit?
             //estado
-            pstmt.setBoolean(2,estado);
+            var estadoBit = 0;
+            if(estado) estadoBit = 1;
+            pstmt.setInt(3,estadoBit);
+            /*org.postgresql.util.PSQLException: ERROR: cannot cast type boolean to bit
+            pstmt.setBoolean(3,estado);*/
             //pstmt.setDate(4,dt);
-            pstmt.setString(3,dt);
-            pstmt.setString(4,marca);
-            pstmt.setString(5,modelo);
-            pstmt.setString(6,local);
-            pstmt.setString(7,idactivotp);
-            pstmt.setInt(8,tipo);
-            pstmt.setInt(9,empresa);
-            pstmt.setInt(10,pessoa);
+            pstmt.setDate(4, Date.valueOf(dt));
+            pstmt.setString(5,marca);
+            pstmt.setString(6,modelo);
+            pstmt.setString(7,local);
+            pstmt.setString(8,idactivotp);
+            pstmt.setInt(9,tipo);
+            pstmt.setInt(10,empresa);
+            pstmt.setInt(11,pessoa);
             pstmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -170,8 +165,35 @@ public class queries {
         return rs.getString(1);
     }
 
-    public static void substituirElem() {
+    public static void substituirElem(int idToReplaceOut, int idToReplaceIn) throws SQLException {
+        /*try {
+            connect();
+            stmt = con.createStatement();
+            pstmt = con.prepareStatement("INSERT INTO ACTIVO (id, nome, estado, dtaquisicao, marca, modelo, localizacao, idactivotopo, tipo, empresa, pessoa) " +
+                    "VALUES (?,?,?::bit,?,?,?,?,?,?,?,?)");
+            pstmt.setString(1, increaseId(maxIdActivo()));    //ident reserva
+            pstmt.setString(2,nome);
+            pstmt.setInt(3,estadoBit);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            closeConnection();
+        }*/
+    }
 
+    private static int getEquipaFromId(int id) throws SQLException {
+        int equipa = -1;
+        try {
+            connect();
+            stmt = con.createStatement();
+            pstmt = con.prepareStatement("SELECT equipa FROM PESSOA WHERE id=?");
+            pstmt.setInt(1, id);    //ident reserva
+            rs = pstmt.executeQuery();
+            if(rs.next()) equipa = rs.getInt(1);
+        } catch (SQLException e) {e.printStackTrace();
+        } finally { closeConnection();}
+        return equipa;
     }
 
     public static void activoForaServico() {
