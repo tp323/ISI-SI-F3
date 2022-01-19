@@ -1,6 +1,8 @@
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.util.*;
+
 
 
 public class App {
@@ -17,10 +19,10 @@ public class App {
         //test connection
         //queries.exampleTest();
 
-        //optionsMenuDisplay();
-        //optionsMenu();
+        optionsMenuDisplay();
+        optionsMenu();
 
-        queries.test();
+        //queries.test();
 
 
     }
@@ -33,9 +35,9 @@ public class App {
             case 3 -> activoForaServico();
             /*case 4 -> queries.custoTotalActivo();
             case 5 -> queries.query2d();
-            case 6 -> queries.query2e();
+            case 6 -> queries.query2e();*/
             case 7 -> queries.query3c();
-            case 8 -> queries.query3d();*/
+            //case 8 -> queries.query3d();
             case 9 -> exit();
             default -> System.err.println("Opção não reconhecida");
         }
@@ -48,8 +50,6 @@ public class App {
         System.out.println("Inserir novo Activo na Base de dados");
         System.out.println("Insira os seguintes dados relativos a um novo Activo");
         String nome = getValString("Nome");
-        int estadoBol = getValInt("Estado");
-        boolean estado = estadoBol == 1;
         String data = getDate("Data Aquisição");
         String marca = getValString("Marca");
         String modelo = getValString("Modelo");
@@ -60,7 +60,7 @@ public class App {
         int pessoa = getValInt("pessoa");
 
         getValInt("");
-        queries.novoActivo(nome, estado, data, marca, modelo, local, idactivotp, tipo, empresa, pessoa);
+        queries.novoActivo(nome, data, marca, modelo, local, idactivotp, tipo, empresa, pessoa);
     }
 
     private static void substituirElem() throws SQLException {
@@ -116,7 +116,7 @@ public class App {
             }System.out.println();//Move to the next line to print the next row.
             numRows++;
         }
-        if(numRows == 1) System.out.println("Não existem valores para a interrogação feitas");
+        if(numRows == 1) System.out.println("Não existem valores para a interrogação efetuada");
     }
 
     private static int getValInt(String inputInstructions){
@@ -151,7 +151,6 @@ public class App {
         System.out.println(inputInstructions);
         int ano = getValInt("Ano");
         if (ano < 1900 || ano > 2022) {}
-
         int mes = getValInt("Mês");
         int dia = getValInt("Dia");
         return "" + ano + "-" + mes + "-" + dia;
@@ -169,6 +168,142 @@ public class App {
         input.nextLine();
         return (confirmExit =='s' || confirmExit =='S');
     }
+    private static String getCurrentDateAndTime(){
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Date date = new Date(System.currentTimeMillis());
+        return formatter.format(date);
+    }
 
+    private static String getDate(){
+        System.out.println("Ano");
+        int year = checkIfAboveMin(CURRENT_YEAR);
+        System.out.println("Mês");
+        System.out.println("Entre 1 e 12");
+        System.out.println("1 = JAN  12 = DEZ");
+        int month;
+        if(year == CURRENT_YEAR ) month = checkBetweenBoundaries(CURRENT_MONTH, 12);
+        else month = checkBetweenBoundaries(1, 12);
+        System.out.println("Dia");
+        int lastdaymonth = lastDayMonth(month, year);
+        System.out.println("Entre 1 e " + lastdaymonth);
+        int day = checkBetweenBoundaries(1, lastdaymonth);
+        return getStringDate(year,month,day);
+    }
+
+    private static String getTime(){
+        System.out.println("Hora");
+        int hour = checkBetweenBoundaries(0,23);
+        System.out.println("Minutos");
+        int minutes = checkBetweenBoundaries(0,59); // não se justifica colocar segundos
+        return getStringTime(hour,minutes);
+    }
+
+    public static int lastDayMonth(int month, int year){
+        int lastday = -1;
+        int[] lastdayarray = {-1, 31, -1, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+        if(month == 2) {
+            Calendar testcal = Calendar.getInstance();
+            testcal.set(Calendar.YEAR, year);
+            if (cal.getActualMaximum(Calendar.DAY_OF_YEAR) > 365) lastday = 29;
+            else lastday = 28;
+        }
+        if(month != 2) lastday = lastdayarray[month];
+        return lastday;
+    }
+
+    public static String getStringDate(int year, int month, int day, int hour, int minutes){
+        String date = year + "-";
+        if(checkIfBelowMax(month,10)) date += month + "-";
+        else date += "0" + month + "-";
+        if(checkIfBelowMax(day,10)) date += day + " ";
+        else date += "0" + day + " ";
+        if(checkIfBelowMax(hour,10)) date += hour + ":";
+        else date += "0" + hour + ":";
+        if(checkIfBelowMax(minutes,10)) date += minutes;
+        else date += "0" + minutes;
+        date += ":00";
+        return date;
+    }
+
+    public static String getStringDate(int year, int month, int day){
+        String date = year + "-";
+        if(checkIfBelowMax(month,10)) date += month + "-";
+        else date += "0" + month + "-";
+        if(checkIfBelowMax(day,10)) date += day;
+        else date += "0" + day;
+        return date;
+    }
+
+    public static String getStringTime(int hour, int minutes){
+        String date = "";
+        if(checkIfBelowMax(hour,10)) date += hour + ":";
+        else date += "0" + hour + ":";
+        if(checkIfBelowMax(minutes,10)) date += minutes;
+        else date += "0" + minutes;
+        date += ":00";
+        return date;
+    }
+
+    public static int checkBetweenBoundaries(int min, int max) {
+        int var;
+        do{
+            var = getValInt();
+        }while(var < min || var > max);
+        return var;
+    }
+
+    //public static boolean checkBetweenBoundaries(int var, int min, int max) {return (var < min || var > max);}
+
+    public static int checkIfAboveMin(int min) {
+        int var;
+        do{
+            var = getValInt();
+        }while(var < min);
+        return var;
+    }
+
+    public static boolean checkIfBelowMax(int var, int max) {return var >= max;}
+
+    public static String[] listToArrayString(List<String> list){
+        String[] array = new String[list.size()];
+        for (int n=0; n<list.size(); n++){
+            array[n] = list.get(n);
+        }
+        return array;
+    }
+
+    public static int[] listToArrayInt(List<Integer> list){
+        int[] array = new int[list.size()];
+        for (int n=0; n<list.size(); n++){
+            array[n] = list.get(n);
+        }
+        return array;
+    }
+
+    public static String checkIfInArray(String[] array){
+        String var;
+        do{
+            var = getValString();
+        }while (!checkIfInArray(var, array));
+        return var;
+    }
+
+    public static int checkIfInArrayInt(int[] array){
+        int var;
+        do{
+            var = getValInt();
+        }while (!checkIfInArrayInt(var, array));
+        return var;
+    }
+
+    public static boolean checkIfInArray(String var, String[] array){
+        for (String s : array) if (s.equals(var)) return true;
+        return false;
+    }
+
+    public static boolean checkIfInArrayInt(int var, int[] array){
+        for (int s : array) if (s==var) return true;
+        return false;
+    }
 
 }
