@@ -14,10 +14,14 @@ public class queries {
     private static final int SIZE_NUMBER_PART_ID = 4;
 
     public static void test() throws SQLException {
+        /*System.out.println(checkRestrictionVComercial());
+        System.out.println(checkRestrictionVComercial("a0001"));
+        System.out.println(checkRestrictionVComercial("z0002"));*/
+
         /*query2d("válvula de ar condicionado");
         query2e("Manuel Fernandes");
         query3c();*/
-        query3d("month",1);
+        //query3d("month",1);
         //System.out.println(checkEquipasMin2Elements());
         //System.out.println(getEquipaFromId(1));
         //substituirElem(1,3);
@@ -108,7 +112,63 @@ public class queries {
         return conditionCheck;
     }
 
-    public static void checkRestrictionActivohierarchy() {
+    public static boolean checkRestrictionVComercial() throws SQLException {
+        //true if DB follows restriction
+        boolean conditionCheck = false;
+        try {
+            connect();
+            stmt = con.createStatement();
+            rs = stmt.executeQuery("select distinct on (id) id, dtaquisicao, dtvcomercial from " +
+                    "(ACTIVO join vcomercial on ACTIVO.id=VCOMERCIAL.activo) group by id, nome,valor,dtvcomercial " +
+                    "order by id, dtvcomercial asc");
+            List<String> idsAtivos = new ArrayList<String>();
+            List<Date> dataAq = new ArrayList<Date>();
+            List<Date> primeiraDataVCom = new ArrayList<Date>();
+            while (rs.next()) {
+                idsAtivos.add(rs.getString(1));
+                dataAq.add(rs.getDate(2));
+                primeiraDataVCom.add(rs.getDate(3));
+            }
+            printLists(idsAtivos,dataAq,primeiraDataVCom);
+            conditionCheck = true;
+            for(int n=0; n < idsAtivos.size();n++) {
+                if(dataAq.get(n).compareTo(primeiraDataVCom.get(n))>0){
+                    conditionCheck = false;
+                    break;
+                }
+            }
+        } catch (SQLException e) { e.printStackTrace();
+        } finally {closeConnection(); }
+        return conditionCheck;
+    }
+
+    public static boolean checkRestrictionVComercial(String id) throws SQLException {
+        //true if DB follows restriction
+        boolean conditionCheck = false;
+        try {
+            connect();
+            pstmt = con.prepareStatement("select distinct on (id) dtaquisicao, dtvcomercial from " +
+                    "(ACTIVO join vcomercial on ACTIVO.id=VCOMERCIAL.activo) where id = ? group by id, nome,valor,dtvcomercial " +
+                    "order by id, dtvcomercial asc");
+            pstmt.setString(1, id);
+            rs = pstmt.executeQuery();
+            if(rs.next() && rs.getDate(1).compareTo(rs.getDate(2)) <= 0) conditionCheck = true;
+        } catch (SQLException e) { e.printStackTrace();
+        } finally {closeConnection(); }
+        return conditionCheck;
+    }
+
+    //for tests
+    private static void printLists(List<String> id, List<Date> dateAq, List<Date> dateVC) {
+        for (int n=0; n < id.size();n++) {
+            System.out.print(id.get(n) + "  " + dateAq.get(n) + "  " + dateVC.get(n));
+            System.out.println();
+        }
+        System.out.println();
+    }
+
+
+    public static void checkRestrictionIntervencao() {
 
     }
 
@@ -116,20 +176,13 @@ public class queries {
 
     }
 
-    public static void checkRestrictionIntervencao() {
+    public static void checkRestrictionActivohierarchy() {
 
     }
-
-    public static void checkRestrictionVcomercial() {
-
-    }
-
-
 
     public static void checkRestrictionConflictGestaoMan() {
 
     }
-
     //passamos estado = 1, pois definimos que este é o valor dafault do mesmo aquando da inserção de um novo ACTIVO
     public static void novoAtivo(String nome, String dt, String marca, String modelo, String local, String idactivotp, int tipo, int empresa, int pessoa) throws SQLException {
         String newId = increaseId(stQueryResString("SELECT MAX(id) FROM ACTIVO"));
@@ -238,8 +291,12 @@ public class queries {
 
     //does not work
     public static void query3d(String period, int amount) throws SQLException {
-        String intervalMin = "" + amount + " " + period;
-        String intervalMax = "" + amount+1 + " " + period;
+        /*String intervalMin = "" + amount + " " + period;
+        amount++;
+        String intervalMax = "" + amount + " " + period;*/
+        String intervalMin = "1 month";
+        String intervalMax = "2 month";
+
         try {
             connect();
             pstmt = con.prepareStatement("select noint from (INTERVENCAO join INTER_EQUIPA " +
@@ -251,7 +308,7 @@ public class queries {
             pstmt.setString(3, period);
             pstmt.setString(4, intervalMax);
             rs = pstmt.executeQuery();
-            App.printTable(rs,2);
+            App.printTable(rs,1);
         } catch (SQLException e) {e.printStackTrace();
         } finally { closeConnection();}
     }

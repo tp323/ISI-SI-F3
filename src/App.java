@@ -15,8 +15,8 @@ public class App {
 
 
     public static void main(String[] args) throws SQLException {
-        optionsMenu();
-        //queries.test();
+        //optionsMenu();
+        queries.test();
     }
 
     private static void optionsMenu() throws SQLException {
@@ -128,7 +128,7 @@ public class App {
         //todas as equipas têm no mínimo 2 pessoas
         queries.checkEquipasMin2Elements();
         //VCOMERCIAL.dtvcomercial de VCOMERCIAL >= ACTIVO.dtaquisicao
-        queries.checkRestrictionVcomercial();
+        queries.checkRestrictionVComercial();
         //Se INTERVENCAO.valcusto > valor comercial do activo,
         // ACTIVO.estado = “0”, INTERVENCAO.estado = “concluído” e INTERVENCAO.dtfim = data actual
         queries.checkRestrictionIntervencao();
