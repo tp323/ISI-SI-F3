@@ -1,4 +1,6 @@
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class queries {
     private static final String URL = "jdbc:postgresql://10.62.73.22:5432/";
@@ -24,7 +26,26 @@ public class queries {
         //custoTotalActivo("a0001");
     }
 
-    // partimos do pressuposto que o id nunca irá ultrapassar a parte do numero
+    public static List<String> getEmpresas() throws SQLException {
+        List<String> empresas = new ArrayList<String>();
+        try {
+            connect();
+            stmt = con.createStatement();
+            rs = stmt.executeQuery("select nome from EMPRESA");
+            for(int n=0; rs.next(); n++) {
+                empresas.add(rs.getString(1));
+                System.out.println(rs.getString(1));
+            }
+        } catch (SQLException e) {e.printStackTrace();
+        } finally { closeConnection();}
+        return empresas;
+    }
+
+    public static int getIdEmpresa(String name) throws SQLException{
+        return pstQuerryResInt("select id from EMPRESA where nome = ?", name);
+    }
+
+    // partimos do pressuposto que o id nunca irá ultrapassar a parte numerica
     private static String increaseId(String id){
         String nextId = id;
         char firstChar = nextId.charAt(0);
@@ -46,11 +67,10 @@ public class queries {
     private static void connect() throws SQLException {
         try {
             con = DriverManager.getConnection(URL, username, password);
-        } catch (SQLException sqlex) {
-            System.out.println("Erro : " + sqlex.getMessage());
-        }
+        } catch (Exception e) { e.printStackTrace();}
     }
 
+    // fechar ligação e limpar recursos
     private static void closeConnection() throws SQLException {
         try {
             if (rs != null) rs.close();
@@ -140,8 +160,12 @@ public class queries {
         }
     }
 
+    // vai ser pedido os nomes
+
     public static void substituirElem(int idToReplaceOut, int idToReplaceIn) throws SQLException {
         int equipa = getEquipaFromId(idToReplaceOut);
+        // verificação se a equipa do elemento que vai substituir vai ter o número mínimo de elementos
+        // verificamos se a
         if(!checkEquipasMinXElements(getEquipaFromId(idToReplaceIn),3)){
             System.out.println("Can't replace elements");
             System.out.println("Team from element that would replace, would have less than 2 elements");

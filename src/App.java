@@ -2,6 +2,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 
 
@@ -18,8 +20,6 @@ public class App {
     public static void main(String[] args) throws SQLException {
         //test connection
         //queries.exampleTest();
-
-        optionsMenuDisplay();
         optionsMenu();
 
         //queries.test();
@@ -45,22 +45,34 @@ public class App {
 
 
     private static void novoActivo() throws SQLException {
-        //String nome, Boolean estado, Date dt, String marca, String modelo, String local, String idactivotp, int tipo, int empresa, int pessoa
-
         System.out.println("Inserir novo Activo na Base de dados");
         System.out.println("Insira os seguintes dados relativos a um novo Activo");
-        String nome = getValString("Nome");
-        String data = getDate("Data Aquisição");
-        String marca = getValString("Marca");
-        String modelo = getValString("Modelo");
-        String local = getValString("Localização");
-        String idactivotp = getValString("Id Activo Topo");
-        int tipo = getValInt("Tipo");
-        int empresa = getValInt("empresa");
-        int pessoa = getValInt("pessoa");
+        System.out.println("Nome");
+        String nome = getValString();
+        System.out.println("Data Aquisição");
+        String data = getDate();
+        System.out.println("Marca");
+        System.out.println("Se o Activo não tiver marca escreva null");
+        String marca = getValString();
+        System.out.println("Modelo");
+        System.out.println("Se o Activo não tiver modelo escreva null");
+        String modelo = getValString();
+        System.out.println("Localização");
+        String local = getValString();
+        /*System.out.println("Id Activo Topo");
+        System.out.println("Tem de corresponder a um dos Activos já presentes no sistema");
 
-        getValInt("");
-        queries.novoActivo(nome, data, marca, modelo, local, idactivotp, tipo, empresa, pessoa);
+        String idactivotp = getValString();
+        System.out.println("Tipo");
+        int tipo = getValInt();*/
+        System.out.println("Empresa");
+        System.out.println("Apenas são aceites empresas já presentes no sistema");
+        String nomeEmpresa = checkIfInList(queries.getEmpresas());
+
+        int empresa = queries.getIdEmpresa(nomeEmpresa);
+        System.out.println("Pessoa");
+        int pessoa = getValInt();
+        //queries.novoActivo(nome, data, marca, modelo, local, idactivotp, tipo, empresa, pessoa);
     }
 
     private static void substituirElem() throws SQLException {
@@ -119,20 +131,6 @@ public class App {
         if(numRows == 1) System.out.println("Não existem valores para a interrogação efetuada");
     }
 
-    private static int getValInt(String inputInstructions){
-        System.out.println(inputInstructions);
-        System.out.print("> ");
-        int val = input.nextInt();
-        //consume rest of line
-        input.nextLine();
-        return val;
-    }
-
-    private static String getValString(String inputInstructions){
-        System.out.println(inputInstructions);
-        System.out.print("> ");
-        return input.nextLine();
-    }
 
     private static int getValInt(){
         System.out.print("> ");
@@ -147,15 +145,7 @@ public class App {
         return input.nextLine();
     }
 
-    private static String getDate(String inputInstructions) {
-        System.out.println(inputInstructions);
-        int ano = getValInt("Ano");
-        if (ano < 1900 || ano > 2022) {}
-        int mes = getValInt("Mês");
-        int dia = getValInt("Dia");
-        return "" + ano + "-" + mes + "-" + dia;
-    }
-
+    //exit app
     private static void exit() throws SQLException {
         System.out.println("Confirma Saída do Programa");
         if(checkConsent()) System.exit(0);
@@ -176,7 +166,7 @@ public class App {
 
     private static String getDate(){
         System.out.println("Ano");
-        int year = checkIfAboveMin(CURRENT_YEAR);
+        int year = checkBetweenBoundaries(1950,2100);
         System.out.println("Mês");
         System.out.println("Entre 1 e 12");
         System.out.println("1 = JAN  12 = DEZ");
@@ -262,6 +252,14 @@ public class App {
         return var;
     }
 
+    public static int checkIfBelowMax(int max) {
+        int var;
+        do{
+            var = getValInt();
+        }while(var > max);
+        return var;
+    }
+
     public static boolean checkIfBelowMax(int var, int max) {return var >= max;}
 
     public static String[] listToArrayString(List<String> list){
@@ -305,5 +303,18 @@ public class App {
         for (int s : array) if (s==var) return true;
         return false;
     }
+
+    public static String checkIfInList(List<String> list){
+        String var;
+        do{var = getValString();
+        }while (!list.contains(var));
+        return var;
+    }
+
+    public static int checkIfInListInt(List<Integer> list){
+        int var;
+        do{var = getValInt();
+        }while (!list.contains(var));
+        return var;    }
 
 }
