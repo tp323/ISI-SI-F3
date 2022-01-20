@@ -14,10 +14,10 @@ public class queries {
     private static final int SIZE_NUMBER_PART_ID = 4;
 
     public static void test() throws SQLException {
-        query2d("válvula de ar condicionado");
+        /*query2d("válvula de ar condicionado");
         query2e("Manuel Fernandes");
-        query3c();
-        //query3d();
+        query3c();*/
+        query3d("month",1);
         //System.out.println(checkEquipasMin2Elements());
         //System.out.println(getEquipaFromId(1));
         //substituirElem(1,3);
@@ -236,18 +236,24 @@ public class queries {
 
     }
 
-    public static void query3d() throws SQLException {
-        /*try {
+    //does not work
+    public static void query3d(String period, int amount) throws SQLException {
+        String intervalMin = "" + amount + " " + period;
+        String intervalMax = "" + amount+1 + " " + period;
+        try {
             connect();
             pstmt = con.prepareStatement("select noint from (INTERVENCAO join INTER_EQUIPA " +
                     "on INTERVENCAO.noint=INTER_EQUIPA.intervencao) where dtinicio between " +
-                    "date_trunc('month', CURRENT_DATE + interval '1 month' ) and date_trunc('month', " +
-                    "CURRENT_DATE + interval '2 month')");
-            pstmt.setString(1, val);
+                    "date_trunc(?, CURRENT_DATE + interval ? ) and date_trunc(?, " +
+                    "CURRENT_DATE + interval ?)");
+            pstmt.setString(1, period);
+            pstmt.setString(2, intervalMin);
+            pstmt.setString(3, period);
+            pstmt.setString(4, intervalMax);
             rs = pstmt.executeQuery();
             App.printTable(rs,2);
         } catch (SQLException e) {e.printStackTrace();
-        } finally { closeConnection();}*/
+        } finally { closeConnection();}
     }
 
     private static String stQueryResString(String query) throws SQLException {
