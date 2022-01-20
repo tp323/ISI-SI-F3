@@ -2,7 +2,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.ArrayList;
 import java.util.List;
 
 
@@ -15,15 +14,10 @@ public class App {
     //private static final String[] ATR_DISC_VALUES = {"P","NP"};
 
 
-
-
     public static void main(String[] args) throws SQLException {
-        //test connection
-        //queries.exampleTest();
         optionsMenu();
 
         //queries.test();
-
 
     }
 
@@ -59,20 +53,30 @@ public class App {
         String modelo = getValString();
         System.out.println("Localização");
         String local = getValString();
-        /*System.out.println("Id Activo Topo");
+        //missing restriction check
+        System.out.println("Id Activo Topo");
         System.out.println("Tem de corresponder a um dos Activos já presentes no sistema");
-
-        String idactivotp = getValString();
+        System.out.println("Ids de activos no sistema: ");
+        List<String> idActivos = queries.getIdActivos();
+        printList(idActivos);
+        String idactivotp = checkIfInList(idActivos);
         System.out.println("Tipo");
-        int tipo = getValInt();*/
+        List<Integer> tipos = queries.getIdTipos();
+        printListInt(tipos);
+        int tipo = checkIfInListInt(tipos);
         System.out.println("Empresa");
         System.out.println("Apenas são aceites empresas já presentes no sistema");
-        String nomeEmpresa = checkIfInList(queries.getEmpresas());
-
+        List<String> empresas = queries.getEmpresas();
+        printList(empresas);
+        String nomeEmpresa = checkIfInList(empresas);
         int empresa = queries.getIdEmpresa(nomeEmpresa);
         System.out.println("Pessoa");
-        int pessoa = getValInt();
-        //queries.novoActivo(nome, data, marca, modelo, local, idactivotp, tipo, empresa, pessoa);
+        List<String> nomePessoas = queries.getNomePessoas();
+        printList(nomePessoas);
+        String nomePessoa = checkIfInList(nomePessoas);
+        int pessoa = queries.getIdPessoa(nomePessoa);
+
+        queries.novoActivo(nome, data, marca, modelo, local, idactivotp, tipo, empresa, pessoa);
     }
 
     private static void substituirElem() throws SQLException {
@@ -158,6 +162,17 @@ public class App {
         input.nextLine();
         return (confirmExit =='s' || confirmExit =='S');
     }
+
+    private static void printList(List<String> list) {
+        for (String s : list) { System.out.print(s + "   "); }
+        System.out.println();
+    }
+
+    private static void printListInt(List<Integer> list) {
+        for (int s : list) { System.out.print(s + "   "); }
+        System.out.println();
+    }
+
     private static String getCurrentDateAndTime(){
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Date date = new Date(System.currentTimeMillis());

@@ -26,26 +26,18 @@ public class queries {
         //custoTotalActivo("a0001");
     }
 
-    public static List<String> getEmpresas() throws SQLException {
-        List<String> empresas = new ArrayList<String>();
-        try {
-            connect();
-            stmt = con.createStatement();
-            rs = stmt.executeQuery("select nome from EMPRESA");
-            for(int n=0; rs.next(); n++) {
-                empresas.add(rs.getString(1));
-                System.out.println(rs.getString(1));
-            }
-        } catch (SQLException e) {e.printStackTrace();
-        } finally { closeConnection();}
-        return empresas;
-    }
-
+    public static List<Integer> getIdTipos() throws SQLException {return stQueryResListInt("select id from ACTIVOTIPO");}
+    public static List<String> getIdActivos() throws SQLException {return stQueryResListString("select id from ACTIVO");}
+    public static List<String> getNomePessoas() throws SQLException {return stQueryResListString("select nome from PESSOA");}
+    public static List<String> getEmpresas() throws SQLException {return stQueryResListString("select nome from EMPRESA");}
     public static int getIdEmpresa(String name) throws SQLException{
-        return pstQuerryResInt("select id from EMPRESA where nome = ?", name);
+        return pstQueryResInt("select id from EMPRESA where nome = ?", name);
+    }
+    public static int getIdPessoa(String name) throws SQLException{
+        return pstQueryResInt("select id from PESSOA where nome = ?", name);
     }
 
-    // partimos do pressuposto que o id nunca irá ultrapassar a parte numerica
+    // partimos do pressuposto que o id nunca irá ultrapassar a parte numérica
     private static String increaseId(String id){
         String nextId = id;
         char firstChar = nextId.charAt(0);
@@ -208,17 +200,17 @@ public class queries {
 
     //partimos do pressuposto que o activo tem um valor comercial estipulado na data de aquisição
     public static void custoTotalActivo(String id) throws SQLException {
-        int custoAquisicao = pstQuerryResInt("select distinct on (id) valor\n" +
+        int custoAquisicao = pstQueryResInt("select distinct on (id) valor\n" +
                 "from (ACTIVO inner join VCOMERCIAL on id = VCOMERCIAL.activo) where id = ?\n" +
                 "group by id, nome,valor,dtvcomercial order by id, dtvcomercial asc",id);
-        int custoIntervencao = pstQuerryResInt("select sum(valcusto) from (INTERVENCAO right outer join ACTIVO" +
+        int custoIntervencao = pstQueryResInt("select sum(valcusto) from (INTERVENCAO right outer join ACTIVO" +
                 " on INTERVENCAO.activo = ACTIVO.id) where id = ?", id);
         int custoTotal = custoAquisicao + custoIntervencao;
         System.out.println(custoAquisicao + " " + custoIntervencao + " " + custoTotal);
     }
 
     public static void query2d(String id) throws SQLException {
-        pstQuerryResPrint("select ACTIVO.nome, PESSOA.equipa, PESSOA.nome from " +
+        pstQueryResPrint("select ACTIVO.nome, PESSOA.equipa, PESSOA.nome from " +
                 "(PESSOA full outer join INTER_EQUIPA " +
                 "on PESSOA.equipa=INTER_EQUIPA.equipa full outer join INTERVENCAO " +
                 "on INTER_EQUIPA.intervencao=INTERVENCAO.noint left outer join ACTIVO " +
@@ -229,7 +221,7 @@ public class queries {
     }
 
     public static void query2e(String nome) throws SQLException {
-        pstQuerryResPrint("select A.nome from (ACTIVO as A inner join PESSOA as P on pessoa = P.id) where" +
+        pstQueryResPrint("select A.nome from (ACTIVO as A inner join PESSOA as P on pessoa = P.id) where" +
                 " P.nome = ? union select ACTIVO.nome as nomeInterv from " +
                 "(ACTIVO inner join INTERVENCAO on ACTIVO.id = INTERVENCAO.activo inner join " +
                 "INTER_EQUIPA on INTERVENCAO.noint = INTER_EQUIPA.intervencao inner join PESSOA " +
@@ -291,7 +283,7 @@ public class queries {
         } finally { closeConnection();}
     }
 
-    private static int pstQuerryResInt(String query, String val) throws SQLException {
+    private static int pstQueryResInt(String query, String val) throws SQLException {
         int res = -1;
         try {
             connect();
@@ -304,7 +296,7 @@ public class queries {
         return res;
     }
 
-    private static int pstQuerryResInt(String query, int val) throws SQLException {
+    private static int pstQueryResInt(String query, int val) throws SQLException {
         int res = -1;
         try {
             connect();
@@ -317,7 +309,20 @@ public class queries {
         return res;
     }
 
-    private static void pstQuerryResPrint(String query, String val, int numEqualFields, int numCols) throws SQLException {
+    private static String pstQueryResString(String query, String val) throws SQLException {
+        String res = "";
+        try {
+            connect();
+            pstmt = con.prepareStatement(query);
+            pstmt.setString(1, val);
+            rs = pstmt.executeQuery();
+            if(rs.next()) res = rs.getString(1);
+        } catch (SQLException e) {e.printStackTrace();
+        } finally { closeConnection();}
+        return res;
+    }
+
+    private static void pstQueryResPrint(String query, String val, int numEqualFields, int numCols) throws SQLException {
         try {
             connect();
             pstmt = con.prepareStatement(query);
@@ -328,14 +333,25 @@ public class queries {
         } finally { closeConnection();}
     }
 
-    private static String pstQuerryResString(String query, String val) throws SQLException {
-        String res = "";
+    public static List<String> stQueryResListString(String query) throws SQLException {
+        List<String> res = new ArrayList<String>();
         try {
             connect();
-            pstmt = con.prepareStatement(query);
-            pstmt.setString(1, val);
-            rs = pstmt.executeQuery();
-            if(rs.next()) res = rs.getString(1);
+            stmt = con.createStatement();
+            rs = stmt.executeQuery(query);
+            for(int n=0; rs.next(); n++) {res.add(rs.getString(1));}
+        } catch (SQLException e) {e.printStackTrace();
+        } finally { closeConnection();}
+        return res;
+    }
+
+    public static List<Integer> stQueryResListInt(String query) throws SQLException {
+        List<Integer> res = new ArrayList<Integer>();
+        try {
+            connect();
+            stmt = con.createStatement();
+            rs = stmt.executeQuery(query);
+            for(int n=0; rs.next(); n++) {res.add(rs.getInt(1));}
         } catch (SQLException e) {e.printStackTrace();
         } finally { closeConnection();}
         return res;
@@ -360,4 +376,5 @@ public class queries {
         } catch (SQLException e) {e.printStackTrace();
         } finally { closeConnection();}
     }
+
 }
