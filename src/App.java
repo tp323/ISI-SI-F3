@@ -75,12 +75,19 @@ public class App {
         printList(nomePessoas);
         String nomePessoa = checkIfInList(nomePessoas);
         int pessoa = queries.getIdPessoa(nomePessoa);
-
         queries.novoActivo(nome, data, marca, modelo, local, idactivotp, tipo, empresa, pessoa);
     }
 
     private static void substituirElem() throws SQLException {
-        queries.substituirElem(1,2);
+        System.out.println("Pessoa a ser substituída");
+        List<String> nomePessoas = queries.getNomePessoas();
+        printList(nomePessoas);
+        String nomePessoaOut = checkIfInList(nomePessoas);
+        int pessoaOut = queries.getIdPessoa(nomePessoaOut);
+        System.out.println("Pessoa a substituir");
+        String nomePessoaIn = checkIfInList(nomePessoas);
+        int pessoaIn = queries.getIdPessoa(nomePessoaIn);
+        queries.substituirElem(pessoaOut,pessoaIn);
     }
 
     private static void activoForaServico() throws SQLException {

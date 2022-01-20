@@ -159,8 +159,8 @@ public class queries {
         // verificação se a equipa do elemento que vai substituir vai ter o número mínimo de elementos
         // verificamos se a
         if(!checkEquipasMinXElements(getEquipaFromId(idToReplaceIn),3)){
-            System.out.println("Can't replace elements");
-            System.out.println("Team from element that would replace, would have less than 2 elements");
+            System.out.println("Não é possível substituir pessoa");
+            System.out.println("Equipa de elemento que iria substituir, seria reduzida a menos de 2 elementos");
             return;
         }
         pstUpdate("update PESSOA set equipa = null where id = ?",idToReplaceOut);
