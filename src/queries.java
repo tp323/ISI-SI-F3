@@ -21,21 +21,25 @@ public class queries {
         //System.out.println(checkEquipasMin2Elements());
         //System.out.println(getEquipaFromId(1));
         //substituirElem(1,3);
-        //novoActivo("test","2020-02-03",null,null,"Lisboa","Z0005",1,1,1);
-        //activoForaServico("a0001");
-        //custoTotalActivo("a0001");
+        //novoAtivo("test","2020-02-03",null,null,"Lisboa","Z0005",1,1,1);
+        //ativoForaServico("a0001");
+        //custoTotalAtivo("a0001");
     }
 
     public static List<Integer> getIdTipos() throws SQLException {return stQueryResListInt("select id from ACTIVOTIPO");}
-    public static List<String> getIdActivos() throws SQLException {return stQueryResListString("select id from ACTIVO");}
+    public static List<String> getAtivos() throws SQLException {return stQueryResListString("select nome from ACTIVO");}
     public static List<String> getNomePessoas() throws SQLException {return stQueryResListString("select nome from PESSOA");}
     public static List<String> getEmpresas() throws SQLException {return stQueryResListString("select nome from EMPRESA");}
-    public static int getIdEmpresa(String name) throws SQLException{
-        return pstQueryResInt("select id from EMPRESA where nome = ?", name);
+    public static String getIdAtivo(String name) throws SQLException{
+        return pstQueryResString("select id from ACTIVO where nome = ?", name);
     }
     public static int getIdPessoa(String name) throws SQLException{
         return pstQueryResInt("select id from PESSOA where nome = ?", name);
     }
+    public static int getIdEmpresa(String name) throws SQLException{
+        return pstQueryResInt("select id from EMPRESA where nome = ?", name);
+    }
+
 
     // partimos do pressuposto que o id nunca irá ultrapassar a parte numérica
     private static String increaseId(String id){
@@ -127,7 +131,7 @@ public class queries {
     }
 
     //passamos estado = 1, pois definimos que este é o valor dafault do mesmo aquando da inserção de um novo ACTIVO
-    public static void novoActivo(String nome, String dt, String marca, String modelo, String local, String idactivotp, int tipo, int empresa, int pessoa) throws SQLException {
+    public static void novoAtivo(String nome, String dt, String marca, String modelo, String local, String idactivotp, int tipo, int empresa, int pessoa) throws SQLException {
         String newId = increaseId(stQueryResString("SELECT MAX(id) FROM ACTIVO"));
         try {
             connect();
@@ -151,8 +155,6 @@ public class queries {
             closeConnection();
         }
     }
-
-    // vai ser pedido os nomes
 
     public static void substituirElem(int idToReplaceOut, int idToReplaceIn) throws SQLException {
         int equipa = getEquipaFromId(idToReplaceOut);
@@ -194,19 +196,18 @@ public class queries {
     //activo fora de serviço == estado = 0?
     //adicionar restrição ACTIVO estado=0 n sofre intervenções
     //limpar intervenções? passar para concluido
-    public static void activoForaServico(String idActivo) throws SQLException {
+    public static void ativoForaServico(String idActivo) throws SQLException {
         pstUpdate("update ACTIVO set estado = '0' where id = ?",idActivo);
     }
 
     //partimos do pressuposto que o activo tem um valor comercial estipulado na data de aquisição
-    public static void custoTotalActivo(String id) throws SQLException {
+    public static int custoTotalAtivo(String id) throws SQLException {
         int custoAquisicao = pstQueryResInt("select distinct on (id) valor\n" +
                 "from (ACTIVO inner join VCOMERCIAL on id = VCOMERCIAL.activo) where id = ?\n" +
                 "group by id, nome,valor,dtvcomercial order by id, dtvcomercial asc",id);
         int custoIntervencao = pstQueryResInt("select sum(valcusto) from (INTERVENCAO right outer join ACTIVO" +
                 " on INTERVENCAO.activo = ACTIVO.id) where id = ?", id);
-        int custoTotal = custoAquisicao + custoIntervencao;
-        System.out.println(custoAquisicao + " " + custoIntervencao + " " + custoTotal);
+        return custoAquisicao + custoIntervencao;
     }
 
     public static void query2d(String id) throws SQLException {

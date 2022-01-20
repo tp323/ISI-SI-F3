@@ -16,19 +16,17 @@ public class App {
 
     public static void main(String[] args) throws SQLException {
         optionsMenu();
-
         //queries.test();
-
     }
 
     private static void optionsMenu() throws SQLException {
         optionsMenuDisplay();
         switch (getValInt()) {
-            case 1 -> novoActivo();
+            case 1 -> novoAtivo();
             case 2 -> substituirElem();
-            case 3 -> activoForaServico();
-            /*case 4 -> queries.custoTotalActivo();
-            case 5 -> queries.query2d();
+            case 3 -> ativoForaServico();
+            case 4 -> custoTotalAtivo();
+            /*case 5 -> queries.query2d();
             case 6 -> queries.query2e();*/
             case 7 -> queries.query3c();
             //case 8 -> queries.query3d();
@@ -37,29 +35,29 @@ public class App {
         }
     }
 
-
-    private static void novoActivo() throws SQLException {
-        System.out.println("Inserir novo Activo na Base de dados");
-        System.out.println("Insira os seguintes dados relativos a um novo Activo");
+    private static void novoAtivo() throws SQLException {
+        System.out.println("Inserir novo Ativo na Base de dados");
+        System.out.println("Insira os seguintes dados relativos a um novo Ativo");
         System.out.println("Nome");
         String nome = getValString();
         System.out.println("Data Aquisição");
         String data = getDate();
         System.out.println("Marca");
-        System.out.println("Se o Activo não tiver marca escreva null");
+        System.out.println("Se o Ativo não tiver marca escreva null");
         String marca = getValString();
         System.out.println("Modelo");
-        System.out.println("Se o Activo não tiver modelo escreva null");
+        System.out.println("Se o Ativo não tiver modelo escreva null");
         String modelo = getValString();
         System.out.println("Localização");
         String local = getValString();
         //missing restriction check
-        System.out.println("Id Activo Topo");
-        System.out.println("Tem de corresponder a um dos Activos já presentes no sistema");
-        System.out.println("Ids de activos no sistema: ");
-        List<String> idActivos = queries.getIdActivos();
-        printList(idActivos);
-        String idactivotp = checkIfInList(idActivos);
+        System.out.println("Id Ativo Topo");
+        System.out.println("Tem de corresponder a um dos Ativos já presentes no sistema");
+        System.out.println("Nome ativos no sistema: ");
+        List<String> ativos = queries.getAtivos();
+        printList(ativos);
+        String nomeAtivoTopo = checkIfInList(ativos);
+        String idAtivoTopo = queries.getIdAtivo(nomeAtivoTopo);
         System.out.println("Tipo");
         List<Integer> tipos = queries.getIdTipos();
         printListInt(tipos);
@@ -75,7 +73,7 @@ public class App {
         printList(nomePessoas);
         String nomePessoa = checkIfInList(nomePessoas);
         int pessoa = queries.getIdPessoa(nomePessoa);
-        queries.novoActivo(nome, data, marca, modelo, local, idactivotp, tipo, empresa, pessoa);
+        queries.novoAtivo(nome, data, marca, modelo, local, idAtivoTopo, tipo, empresa, pessoa);
     }
 
     private static void substituirElem() throws SQLException {
@@ -90,26 +88,43 @@ public class App {
         queries.substituirElem(pessoaOut,pessoaIn);
     }
 
-    private static void activoForaServico() throws SQLException {
-        //queries.activoForaServico();
+    private static void ativoForaServico() throws SQLException {
+        System.out.println("Ativo");
+        System.out.println("Ativos no sistema: ");
+        List<String> ativos = queries.getAtivos();
+        printList(ativos);
+        String nomeAtivo = checkIfInList(ativos);
+        String idAtivo = queries.getIdAtivo(nomeAtivo);
+        queries.ativoForaServico(idAtivo);
+    }
+
+    private static void custoTotalAtivo() throws SQLException {
+        System.out.println("Ativo");
+        System.out.println("Ativos no sistema: ");
+        List<String> ativos = queries.getAtivos();
+        printList(ativos);
+        String nomeAtivo = checkIfInList(ativos);
+        String idAtivo = queries.getIdAtivo(nomeAtivo);
+        System.out.println("Custo Total do Ativo");
+        System.out.println(queries.custoTotalAtivo(idAtivo) + "€");
     }
 
     private static void optionsMenuDisplay() {
         System.out.println("Gestão de manutenção de activos físicos");
-        System.out.println("1. Novo Activo (a)");
+        System.out.println("1. Novo Ativo (a)");
         System.out.println("2. Substituir um elemento de equipa (b)");
-        System.out.println("3. Colocar Activo Fora de Serviço (c)");
-        System.out.println("4. Custo Total Activo (d)");
+        System.out.println("3. Colocar Ativo Fora de Serviço (c)");
+        System.out.println("4. Custo Total Ativo (d)");
         System.out.println("5. Pessoas que estão a realizar a intervenção na “válvula de ar condicionado“ " +
-                "ou que gerem esse activo (2d)");
-        System.out.println("6. Activos geridos ou intervencionados por “Manuel Fernandes” (2e)");
-        System.out.println("7. Responsáveis de equipa que são (ou foram) gestores de pelo menos um activo (3c)");
+                "ou que gerem esse ativo (2d)");
+        System.out.println("6. Ativos geridos ou intervencionados por “Manuel Fernandes” (2e)");
+        System.out.println("7. Responsáveis de equipa que são (ou foram) gestores de pelo menos um ativo (3c)");
         System.out.println("8. Intervenções programadas para daqui a um mês (3d)");
         System.out.println("9. Sair");
     }
 
     private static void checkRestrictions() throws SQLException{
-        correctDBerrors();
+        correctDBErrors();
         //todas as equipas têm no mínimo 2 pessoas
         queries.checkEquipasMin2Elements();
         //VCOMERCIAL.dtvcomercial de VCOMERCIAL >= ACTIVO.dtaquisicao
@@ -119,13 +134,13 @@ public class App {
         queries.checkRestrictionIntervencao();
         //Se INTERVENCAO.dtfim é não nulo, estado = “concluído”;
         queries.checkRestrictionIntervencaoDtFim();
-        //os activos “filhos” são do mesmo tipo que o activo “pai”;
+        //os ativos “filhos” são do mesmo tipo que o ativo “pai”;
         queries.checkRestrictionActivohierarchy();
-        //a pessoa que gere um activo não faz a manutenção desse activo.
+        //a pessoa que gere um ativo não faz a manutenção desse ativo.
         queries.checkRestrictionConflictGestaoMan();
     }
 
-    private static void correctDBerrors() throws SQLException{
+    private static void correctDBErrors() throws SQLException{
 
     }
 
@@ -211,16 +226,16 @@ public class App {
     }
 
     public static int lastDayMonth(int month, int year){
-        int lastday = -1;
-        int[] lastdayarray = {-1, 31, -1, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+        int lastDay = -1;
+        int[] lastDayArray = {-1, 31, -1, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
         if(month == 2) {
-            Calendar testcal = Calendar.getInstance();
-            testcal.set(Calendar.YEAR, year);
-            if (cal.getActualMaximum(Calendar.DAY_OF_YEAR) > 365) lastday = 29;
-            else lastday = 28;
+            Calendar testCal = Calendar.getInstance();
+            testCal.set(Calendar.YEAR, year);
+            if (cal.getActualMaximum(Calendar.DAY_OF_YEAR) > 365) lastDay = 29;
+            else lastDay = 28;
         }
-        if(month != 2) lastday = lastdayarray[month];
-        return lastday;
+        if(month != 2) lastDay = lastDayArray[month];
+        return lastDay;
     }
 
     public static String getStringDate(int year, int month, int day, int hour, int minutes){
