@@ -15,7 +15,7 @@ public class App {
 
 
     public static void main(String[] args) throws SQLException {
-        //optionsMenu();
+        optionsMenu();
         queries.test();
     }
 
@@ -58,10 +58,12 @@ public class App {
         printList(ativos);
         String nomeAtivoTopo = checkIfInList(ativos);
         String idAtivoTopo = queries.getIdAtivo(nomeAtivoTopo);
-        System.out.println("Tipo");
+        // tipo é inferido a partir da restrição 4 -> Ativos filhos são do mesmo tipo que o seu ativo pai (ativoTopo)
+        /*System.out.println("Tipo");
         List<Integer> tipos = queries.getIdTipos();
         printListInt(tipos);
-        int tipo = checkIfInListInt(tipos);
+        int tipo = checkIfInListInt(tipos);*/
+        int tipo = queries.getIdTipoFromAtivo(idAtivoTopo);
         System.out.println("Empresa");
         System.out.println("Apenas são aceites empresas já presentes no sistema");
         List<String> empresas = queries.getEmpresas();
@@ -135,7 +137,7 @@ public class App {
         //Se INTERVENCAO.dtfim é não nulo, estado = “concluído”;
         queries.checkRestrictionIntervencaoDtFim();
         //os ativos “filhos” são do mesmo tipo que o ativo “pai”;
-        queries.checkRestrictionActivohierarchy();
+        queries.checkRestrictionAtivoHierarchy();
         //a pessoa que gere um ativo não faz a manutenção desse ativo.
         queries.checkRestrictionConflictGestaoMan();
     }

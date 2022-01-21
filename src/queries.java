@@ -14,21 +14,8 @@ public class queries {
     private static final int SIZE_NUMBER_PART_ID = 4;
 
     public static void test() throws SQLException {
-        /*System.out.println(checkRestrictionVComercial());
-        System.out.println(checkRestrictionVComercial("a0001"));
-        System.out.println(checkRestrictionVComercial("z0002"));*/
-        checkRestrictionIntervencaoDtFim();
-        //System.out.println(checkRestrictionIntervencao());
-        /*query2d("válvula de ar condicionado");
-        query2e("Manuel Fernandes");
-        query3c();*/
-        //query3d("month",1);
-        //System.out.println(checkEquipasMin2Elements());
-        //System.out.println(getEquipaFromId(1));
-        //substituirElem(1,3);
-        //novoAtivo("test","2020-02-03",null,null,"Lisboa","Z0005",1,1,1);
-        //ativoForaServico("a0001");
-        //custoTotalAtivo("a0001");
+
+
     }
 
     public static List<Integer> getIdTipos() throws SQLException {return stQueryResListInt("select id from ACTIVOTIPO");}
@@ -36,15 +23,13 @@ public class queries {
     public static List<String> getIdAtivos() throws SQLException {return stQueryResListString("select id from ACTIVO");}
     public static List<String> getNomePessoas() throws SQLException {return stQueryResListString("select nome from PESSOA");}
     public static List<String> getEmpresas() throws SQLException {return stQueryResListString("select nome from EMPRESA");}
-    public static String getIdAtivo(String name) throws SQLException{
-        return pstQueryResString("select id from ACTIVO where nome = ?", name);
+    public static String getIdAtivo(String name) throws SQLException{return pstQueryResString("select id from ACTIVO where nome = ?", name);}
+    public static int getIdPessoa(String name) throws SQLException{return pstQueryResInt("select id from PESSOA where nome = ?", name);}
+    public static int getIdEmpresa(String name) throws SQLException{return pstQueryResInt("select id from EMPRESA where nome = ?", name);}
+    public static int getIdTipoFromAtivo(String ativo) throws SQLException{
+        return pstQueryResInt("select activotipo.id from (ACTIVO join activotipo on tipo = activotipo.id) where activo.id = ?", ativo);
     }
-    public static int getIdPessoa(String name) throws SQLException{
-        return pstQueryResInt("select id from PESSOA where nome = ?", name);
-    }
-    public static int getIdEmpresa(String name) throws SQLException{
-        return pstQueryResInt("select id from EMPRESA where nome = ?", name);
-    }
+
 
 
     // partimos do pressuposto que o id nunca irá ultrapassar a parte numérica
@@ -66,6 +51,7 @@ public class queries {
         }return newId += String.valueOf(number);
     }
 
+    // estabelecer ligação com DB
     private static void connect() throws SQLException {
         try {
             con = DriverManager.getConnection(URL, username, password);
@@ -197,15 +183,40 @@ public class queries {
         }
     }
 
-    public static void checkRestrictionActivohierarchy() {
+    public static void checkRestrictionAtivoHierarchy() throws SQLException {
+        //não retorna nenhum valor, pois verifica a restrição e corrige a automaticamente
+        List<String> ativos = getIdAtivos();
+        for (String s: ativos) {
+            //obter ativoTopo
+            String ativoTopo = pstQueryResString("select idactivotopo from ACTIVO where id = ?",s);
+            //obter tipo de ambos os ativos
+            int tipoChild = getIdTipoFromAtivo(s);
+            int tipoParent = getIdTipoFromAtivo(ativoTopo);
+            if(tipoChild!=tipoParent) {
+                // retifica a DB de acordo com a restrição substituindo o id do ativo filho pelo de topo
+                // não é melhor solução, mas permite facilmente regularizar a DB
+                pstUpdate("update ACTIVO set tipo = ? where id = ?",tipoParent,s);
+            }
+        }
+    }
 
+    public static boolean checkRestrictionAtivoHierarchy(String ativo) throws SQLException {
+        //true if DB follows restriction
+        boolean conditionCheck = true;
+        //obter ativoTopo
+        String ativoTopo = pstQueryResString("select idactivotopo from ACTIVO where id = ?",ativo);
+        //obter tipo de ambos os ativos
+        int tipoChild = getIdTipoFromAtivo(ativo);
+        int tipoParent = getIdTipoFromAtivo(ativoTopo);
+        if(tipoChild!=tipoParent) {conditionCheck = false;}
+        return conditionCheck;
     }
 
     public static void checkRestrictionConflictGestaoMan() {
 
     }
-    //passamos estado = 1, pois definimos que este é o valor dafault do mesmo aquando da inserção de um novo ACTIVO
-    public static void novoAtivo(String nome, String dt, String marca, String modelo, String local, String idactivotp, int tipo, int empresa, int pessoa) throws SQLException {
+    //passamos estado = 1, pois definimos que este é o valor default do mesmo aquando da inserção de um novo ATIVO
+    public static void novoAtivo(String nome, String dt, String marca, String modelo, String local, String idAtivoTp, int tipo, int empresa, int pessoa) throws SQLException {
         String newId = increaseId(stQueryResString("SELECT MAX(id) FROM ACTIVO"));
         try {
             connect();
@@ -218,7 +229,7 @@ public class queries {
             pstmt.setString(5,marca);
             pstmt.setString(6,modelo);
             pstmt.setString(7,local);
-            pstmt.setString(8,idactivotp);
+            pstmt.setString(8,idAtivoTp);
             pstmt.setInt(9,tipo);
             pstmt.setInt(10,empresa);
             pstmt.setInt(11,pessoa);
@@ -475,4 +486,14 @@ public class queries {
         } finally { closeConnection();}
     }
 
+    private static void pstUpdate(String query, int firstVal,  String secondVal) throws SQLException {
+        try {
+            connect();
+            pstmt = con.prepareStatement(query);
+            pstmt.setInt(1, firstVal);
+            pstmt.setString(2, secondVal);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {e.printStackTrace();
+        } finally { closeConnection();}
+    }
 }
