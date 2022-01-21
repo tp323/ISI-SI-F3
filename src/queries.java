@@ -17,7 +17,7 @@ public class queries {
         /*System.out.println(checkRestrictionVComercial());
         System.out.println(checkRestrictionVComercial("a0001"));
         System.out.println(checkRestrictionVComercial("z0002"));*/
-
+        //System.out.println(checkRestrictionIntervencao());
         /*query2d("válvula de ar condicionado");
         query2e("Manuel Fernandes");
         query3c();*/
@@ -32,6 +32,7 @@ public class queries {
 
     public static List<Integer> getIdTipos() throws SQLException {return stQueryResListInt("select id from ACTIVOTIPO");}
     public static List<String> getAtivos() throws SQLException {return stQueryResListString("select nome from ACTIVO");}
+    public static List<String> getIdAtivos() throws SQLException {return stQueryResListString("select id from ACTIVO");}
     public static List<String> getNomePessoas() throws SQLException {return stQueryResListString("select nome from PESSOA");}
     public static List<String> getEmpresas() throws SQLException {return stQueryResListString("select nome from EMPRESA");}
     public static String getIdAtivo(String name) throws SQLException{
@@ -163,13 +164,27 @@ public class queries {
         for (int n=0; n < id.size();n++) {
             System.out.print(id.get(n) + "  " + dateAq.get(n) + "  " + dateVC.get(n));
             System.out.println();
-        }
-        System.out.println();
+        }System.out.println();
     }
 
-
-    public static void checkRestrictionIntervencao() {
-
+    public static boolean checkRestrictionIntervencao() throws SQLException {
+        //true if DB follows restriction
+        boolean conditionCheck = true;
+        String custoInt="select distinct on (id) valcusto from (ACTIVO inner join Intervencao on id=activo) where id = ? group by id, valcusto, noint order by id, valcusto desc";
+        String valCom = "select distinct on (activo) valor from vcomercial where activo = ? group by activo, dtvcomercial, valor order by activo, dtvcomercial desc";
+        List<String> ativos = getIdAtivos();
+        for (String s : ativos) {
+            //obter a intervencao mais cara
+            int custoIntervencao = pstQueryResInt(custoInt,s);
+            //obter valor comercial atual
+            int valorComercial = pstQueryResInt(valCom,s);
+            //System.out.println(s + "  custoInt = " + custoIntervencao + "  valorCom = " + valorComercial);
+            if(custoIntervencao>valorComercial){
+                //System.out.println(s + "   estado = 0");
+                conditionCheck = false;
+                break;
+            }
+        }return conditionCheck;
     }
 
     public static void checkRestrictionIntervencaoDtFim() {
