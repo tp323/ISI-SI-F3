@@ -17,6 +17,7 @@ public class queries {
         /*System.out.println(checkRestrictionVComercial());
         System.out.println(checkRestrictionVComercial("a0001"));
         System.out.println(checkRestrictionVComercial("z0002"));*/
+        checkRestrictionIntervencaoDtFim();
         //System.out.println(checkRestrictionIntervencao());
         /*query2d("válvula de ar condicionado");
         query2e("Manuel Fernandes");
@@ -187,8 +188,13 @@ public class queries {
         }return conditionCheck;
     }
 
-    public static void checkRestrictionIntervencaoDtFim() {
-
+    public static void checkRestrictionIntervencaoDtFim() throws SQLException {
+        //não retorna nenhum valor, pois verifica a restrição e corrige a automaticamente
+        List<Integer> interv = stQueryResListInt("select noint from intervencao where dtfim is not NULL");
+        for (int s: interv){
+            if(!pstQueryResString("select estado from intervencao where noint = ?", s).equals("concluído"))
+                pstUpdate("update intervencao set estado = 'concluído' where noint = ?",s);
+        }
     }
 
     public static void checkRestrictionActivohierarchy() {
@@ -394,6 +400,19 @@ public class queries {
             connect();
             pstmt = con.prepareStatement(query);
             pstmt.setString(1, val);
+            rs = pstmt.executeQuery();
+            if(rs.next()) res = rs.getString(1);
+        } catch (SQLException e) {e.printStackTrace();
+        } finally { closeConnection();}
+        return res;
+    }
+
+    private static String pstQueryResString(String query, int val) throws SQLException {
+        String res = "";
+        try {
+            connect();
+            pstmt = con.prepareStatement(query);
+            pstmt.setInt(1, val);
             rs = pstmt.executeQuery();
             if(rs.next()) res = rs.getString(1);
         } catch (SQLException e) {e.printStackTrace();
