@@ -1,0 +1,13 @@
+1. Executar comando "javac -cp ./libraries/postgresql-42.3.1.jar;. App.java"
+2. Executar comando "java -cp ./libraries/postgresql-42.3.1.jar;. App.java"
+
+A aplicação aquando da verificação das retrições, atira várias excepções de SQL, 
+isto deve-se ao enconding que a consola está a usar que n permite o uso de certos carateres,
+em particular acentos, assim sendo na restrição 4 relativo a quando uma Intervenção 
+tiver data de fim não NULL o estado da mesma ser concluído.
+Devido ao encoding, 'í' é um carater não reconhecido e assim sendo em vez de efetuar um update 
+que insira estado=concluído efetuo o seguinte estado=conclÃ­do
+e visto a DB ter uma restrição que apenas permite os seguintes valores ('em análise', 'em execução', 'concluído')
+vai atirar uma exceção de sql dizendo precisamente que não cumpre esta restrição da DB.
+
+Infelizmente não consiguimos corrigir o encoding para resolver este problema.
