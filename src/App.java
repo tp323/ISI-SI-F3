@@ -1,9 +1,9 @@
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Calendar;
 import java.util.List;
-
+import java.util.Scanner;
+import java.util.TimeZone;
 
 
 public class App {
@@ -11,12 +11,11 @@ public class App {
     private static final Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
     private static final int CURRENT_YEAR = cal.get(Calendar.YEAR);
     private static final int CURRENT_MONTH = cal.get(Calendar.MONTH)+1; //STARTS COUNTING ON 0 = JAN
-    //private static final String[] ATR_DISC_VALUES = {"P","NP"};
-
+    private static final String[] INTERVALS = {"year","month","week"};
 
     public static void main(String[] args) throws SQLException {
-        optionsMenu();
-        queries.test();
+        checkAndFixRestrictions();
+        while (true) {optionsMenu();}
     }
 
     private static void optionsMenu() throws SQLException {
@@ -26,10 +25,10 @@ public class App {
             case 2 -> substituirElem();
             case 3 -> ativoForaServico();
             case 4 -> custoTotalAtivo();
-            /*case 5 -> queries.query2d();
-            case 6 -> queries.query2e();*/
+            case 5 -> query2d();
+            case 6 -> query2e();
             case 7 -> queries.query3c();
-            //case 8 -> queries.query3d();
+            case 8 -> query3d();
             case 9 -> exit();
             default -> System.err.println("Opção não reconhecida");
         }
@@ -43,14 +42,11 @@ public class App {
         System.out.println("Data Aquisição");
         String data = getDate();
         System.out.println("Marca");
-        System.out.println("Se o Ativo não tiver marca escreva null");
         String marca = getValString();
         System.out.println("Modelo");
-        System.out.println("Se o Ativo não tiver modelo escreva null");
         String modelo = getValString();
         System.out.println("Localização");
         String local = getValString();
-        //missing restriction check
         System.out.println("Id Ativo Topo");
         System.out.println("Tem de corresponder a um dos Ativos já presentes no sistema");
         System.out.println("Nome ativos no sistema: ");
@@ -59,10 +55,6 @@ public class App {
         String nomeAtivoTopo = checkIfInList(ativos);
         String idAtivoTopo = queries.getIdAtivo(nomeAtivoTopo);
         // tipo é inferido a partir da restrição 4 -> Ativos filhos são do mesmo tipo que o seu ativo pai (ativoTopo)
-        /*System.out.println("Tipo");
-        List<Integer> tipos = queries.getIdTipos();
-        printListInt(tipos);
-        int tipo = checkIfInListInt(tipos);*/
         int tipo = queries.getIdTipoFromAtivo(idAtivoTopo);
         System.out.println("Empresa");
         System.out.println("Apenas são aceites empresas já presentes no sistema");
@@ -107,28 +99,59 @@ public class App {
         printList(ativos);
         String nomeAtivo = checkIfInList(ativos);
         String idAtivo = queries.getIdAtivo(nomeAtivo);
-        System.out.println("Custo Total do Ativo");
-        System.out.println(queries.custoTotalAtivo(idAtivo) + "€");
+        System.out.println("Custo Total do Ativo: " + queries.custoTotalAtivo(idAtivo) + "€");
+    }
+
+    private static void query2d() throws SQLException {
+        System.out.println("Ativo");
+        System.out.println("Ativos no sistema: ");
+        List<String> ativos = queries.getAtivos();
+        printList(ativos);
+        String nomeAtivo = checkIfInList(ativos);
+        queries.query2d(nomeAtivo);
+    }
+
+    private static void query2e() throws SQLException {
+        System.out.println("Pessoa");
+        System.out.println("Pessoas no sistema: ");
+        List<String> pessoas = queries.getNomePessoas();
+        printList(pessoas);
+        String nome = checkIfInList(pessoas);
+        queries.query2e(nome);
+    }
+
+    private static void query3d() throws SQLException {
+        System.out.println("Período");
+        System.out.println("ex 1 month");
+        System.out.println("Quantidade");
+        int amount = getValInt();
+        System.out.println("Tipo de Intervalo");
+        System.out.println("tipos de intervalos: ");
+        for(String s:INTERVALS) System.out.print(s + "  ");
+        System.out.println();
+        String period = checkIfInArray(INTERVALS);
+        queries.query3d(period,amount);
     }
 
     private static void optionsMenuDisplay() {
+        System.out.println();
         System.out.println("Gestão de manutenção de activos físicos");
         System.out.println("1. Novo Ativo (a)");
         System.out.println("2. Substituir um elemento de equipa (b)");
         System.out.println("3. Colocar Ativo Fora de Serviço (c)");
         System.out.println("4. Custo Total Ativo (d)");
-        System.out.println("5. Pessoas que estão a realizar a intervenção na “válvula de ar condicionado“ " +
-                "ou que gerem esse ativo (2d)");
+        System.out.println("5. Pessoas que estão a realizar a intervenção na “válvula de ar condicionado“ ou que gerem esse ativo (2d)");
         System.out.println("6. Ativos geridos ou intervencionados por “Manuel Fernandes” (2e)");
         System.out.println("7. Responsáveis de equipa que são (ou foram) gestores de pelo menos um ativo (3c)");
         System.out.println("8. Intervenções programadas para daqui a um mês (3d)");
         System.out.println("9. Sair");
     }
 
-    private static void checkRestrictions() throws SQLException{
-        correctDBErrors();
+    private static void checkAndFixRestrictions() throws SQLException{
         //todas as equipas têm no mínimo 2 pessoas
-        queries.checkEquipasMin2Elements();
+        //esta restrição não é corrigida pelo código devido à complexidade da mesma e por não ser possível corrigir la na íntegra
+        // a menos que realizássemos uma inserção de 1 ou mais elementos na DB
+        if (!queries.checkEquipasMin2Elements()) System.out.println("does not comply");
         //VCOMERCIAL.dtvcomercial de VCOMERCIAL >= ACTIVO.dtaquisicao
         queries.checkRestrictionVComercial();
         //Se INTERVENCAO.valcusto > valor comercial do activo,
@@ -142,24 +165,25 @@ public class App {
         queries.checkRestrictionConflictGestaoMan();
     }
 
-    private static void correctDBErrors() throws SQLException{
-
-    }
-
-
-    public static void printTable(ResultSet rs, int columnsNumber) throws SQLException {
+    public static void printTable(ResultSet rs, int columnsNumber, String header) throws SQLException {
         int numRows = 1;
-        while (rs.next()) {
+        if(rs.next()){
+            System.out.print("     ");
+            String[] headers = header.split(" ",columnsNumber+1);
+            for(int i = 0 ; i <= columnsNumber; i++)System.out.print(headers[i] + "  ");
+            System.out.println();
+        }
+        do{
             for(int i = 1 ; i <= columnsNumber; i++){
                 if(i==1) System.out.print(numRows + " >  ");
-                System.out.print(rs.getString(i) + "   "); //Print one element of a row
+                System.out.print(rs.getString(i) + "     "); //Print one element of a row
             }System.out.println();//Move to the next line to print the next row.
             numRows++;
-        }
+        }while (rs.next());
         if(numRows == 1) System.out.println("Não existem valores para a interrogação efetuada");
     }
 
-
+    //obter valores inseridos pelo utilizador
     private static int getValInt(){
         System.out.print("> ");
         int val = input.nextInt();
@@ -168,6 +192,7 @@ public class App {
         return val;
     }
 
+    //obter valores inseridos pelo utilizador
     private static String getValString(){
         System.out.print("> ");
         return input.nextLine();
@@ -192,17 +217,7 @@ public class App {
         System.out.println();
     }
 
-    private static void printListInt(List<Integer> list) {
-        for (int s : list) { System.out.print(s + "   "); }
-        System.out.println();
-    }
-
-    private static String getCurrentDateAndTime(){
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        Date date = new Date(System.currentTimeMillis());
-        return formatter.format(date);
-    }
-
+    //obter e verificar valores de data inserida por utilizador
     private static String getDate(){
         System.out.println("Ano");
         int year = checkBetweenBoundaries(1950,2100);
@@ -219,14 +234,7 @@ public class App {
         return getStringDate(year,month,day);
     }
 
-    private static String getTime(){
-        System.out.println("Hora");
-        int hour = checkBetweenBoundaries(0,23);
-        System.out.println("Minutos");
-        int minutes = checkBetweenBoundaries(0,59); // não se justifica colocar segundos
-        return getStringTime(hour,minutes);
-    }
-
+    //obter ultimo dia de cada mês
     public static int lastDayMonth(int month, int year){
         int lastDay = -1;
         int[] lastDayArray = {-1, 31, -1, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
@@ -240,20 +248,7 @@ public class App {
         return lastDay;
     }
 
-    public static String getStringDate(int year, int month, int day, int hour, int minutes){
-        String date = year + "-";
-        if(checkIfBelowMax(month,10)) date += month + "-";
-        else date += "0" + month + "-";
-        if(checkIfBelowMax(day,10)) date += day + " ";
-        else date += "0" + day + " ";
-        if(checkIfBelowMax(hour,10)) date += hour + ":";
-        else date += "0" + hour + ":";
-        if(checkIfBelowMax(minutes,10)) date += minutes;
-        else date += "0" + minutes;
-        date += ":00";
-        return date;
-    }
-
+    //passar dados de data para uma String dde formato Date de PSQL
     public static String getStringDate(int year, int month, int day){
         String date = year + "-";
         if(checkIfBelowMax(month,10)) date += month + "-";
@@ -263,59 +258,14 @@ public class App {
         return date;
     }
 
-    public static String getStringTime(int hour, int minutes){
-        String date = "";
-        if(checkIfBelowMax(hour,10)) date += hour + ":";
-        else date += "0" + hour + ":";
-        if(checkIfBelowMax(minutes,10)) date += minutes;
-        else date += "0" + minutes;
-        date += ":00";
-        return date;
-    }
-
     public static int checkBetweenBoundaries(int min, int max) {
         int var;
-        do{
-            var = getValInt();
+        do{var = getValInt();
         }while(var < min || var > max);
         return var;
     }
 
-    //public static boolean checkBetweenBoundaries(int var, int min, int max) {return (var < min || var > max);}
-
-    public static int checkIfAboveMin(int min) {
-        int var;
-        do{
-            var = getValInt();
-        }while(var < min);
-        return var;
-    }
-
-    public static int checkIfBelowMax(int max) {
-        int var;
-        do{
-            var = getValInt();
-        }while(var > max);
-        return var;
-    }
-
     public static boolean checkIfBelowMax(int var, int max) {return var >= max;}
-
-    public static String[] listToArrayString(List<String> list){
-        String[] array = new String[list.size()];
-        for (int n=0; n<list.size(); n++){
-            array[n] = list.get(n);
-        }
-        return array;
-    }
-
-    public static int[] listToArrayInt(List<Integer> list){
-        int[] array = new int[list.size()];
-        for (int n=0; n<list.size(); n++){
-            array[n] = list.get(n);
-        }
-        return array;
-    }
 
     public static String checkIfInArray(String[] array){
         String var;
@@ -325,21 +275,8 @@ public class App {
         return var;
     }
 
-    public static int checkIfInArrayInt(int[] array){
-        int var;
-        do{
-            var = getValInt();
-        }while (!checkIfInArrayInt(var, array));
-        return var;
-    }
-
     public static boolean checkIfInArray(String var, String[] array){
         for (String s : array) if (s.equals(var)) return true;
-        return false;
-    }
-
-    public static boolean checkIfInArrayInt(int var, int[] array){
-        for (int s : array) if (s==var) return true;
         return false;
     }
 
@@ -349,11 +286,4 @@ public class App {
         }while (!list.contains(var));
         return var;
     }
-
-    public static int checkIfInListInt(List<Integer> list){
-        int var;
-        do{var = getValInt();
-        }while (!list.contains(var));
-        return var;    }
-
 }

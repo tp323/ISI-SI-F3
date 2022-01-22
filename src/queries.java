@@ -10,15 +10,10 @@ public class queries {
     private static Statement stmt = null;
     private static PreparedStatement pstmt = null;
     private static ResultSet rs = null;
-
     private static final int SIZE_NUMBER_PART_ID = 4;
 
-    public static void test() throws SQLException {
-
-
-    }
-
     public static List<Integer> getIdTipos() throws SQLException {return stQueryResListInt("select id from ACTIVOTIPO");}
+    public static List<Integer> getEquipas() throws SQLException {return stQueryResListInt("select distinct equipa from pessoa");}
     public static List<String> getAtivos() throws SQLException {return stQueryResListString("select nome from ACTIVO");}
     public static List<String> getIdAtivos() throws SQLException {return stQueryResListString("select id from ACTIVO");}
     public static List<String> getNomePessoas() throws SQLException {return stQueryResListString("select nome from PESSOA");}
@@ -29,8 +24,6 @@ public class queries {
     public static int getIdTipoFromAtivo(String ativo) throws SQLException{
         return pstQueryResInt("select activotipo.id from (ACTIVO join activotipo on tipo = activotipo.id) where activo.id = ?", ativo);
     }
-
-
 
     // partimos do pressuposto que o id nunca irá ultrapassar a parte numérica
     private static String increaseId(String id){
@@ -100,34 +93,40 @@ public class queries {
         return conditionCheck;
     }
 
-    public static boolean checkRestrictionVComercial() throws SQLException {
-        //true if DB follows restriction
-        boolean conditionCheck = false;
+    public static void checkRestrictionVComercial() throws SQLException {
         try {
             connect();
             stmt = con.createStatement();
             rs = stmt.executeQuery("select distinct on (id) id, dtaquisicao, dtvcomercial from " +
                     "(ACTIVO join vcomercial on ACTIVO.id=VCOMERCIAL.activo) group by id, nome,valor,dtvcomercial " +
                     "order by id, dtvcomercial asc");
-            List<String> idsAtivos = new ArrayList<String>();
-            List<Date> dataAq = new ArrayList<Date>();
-            List<Date> primeiraDataVCom = new ArrayList<Date>();
+            List<String> idsAtivos = new ArrayList<>();
+            List<Date> dataAq = new ArrayList<>();
+            List<Date> primeiraDataVCom = new ArrayList<>();
             while (rs.next()) {
                 idsAtivos.add(rs.getString(1));
                 dataAq.add(rs.getDate(2));
                 primeiraDataVCom.add(rs.getDate(3));
             }
-            printLists(idsAtivos,dataAq,primeiraDataVCom);
-            conditionCheck = true;
             for(int n=0; n < idsAtivos.size();n++) {
                 if(dataAq.get(n).compareTo(primeiraDataVCom.get(n))>0){
-                    conditionCheck = false;
-                    break;
+                    updateVComercial(dataAq.get(n),primeiraDataVCom.get(n),idsAtivos.get(n));
                 }
             }
         } catch (SQLException e) { e.printStackTrace();
         } finally {closeConnection(); }
-        return conditionCheck;
+    }
+
+    private static void updateVComercial(Date dtvSet, Date dtvWhere, String activo) throws SQLException{
+        try {
+            connect();
+            pstmt = con.prepareStatement("update vcomercial set dtvcomercial = ? where dtvcomercial = ? and activo = ?");
+            pstmt.setDate(1, dtvSet);
+            pstmt.setDate(2, dtvWhere);
+            pstmt.setString(3, activo);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {e.printStackTrace();
+        } finally { closeConnection();}
     }
 
     public static boolean checkRestrictionVComercial(String id) throws SQLException {
@@ -146,18 +145,9 @@ public class queries {
         return conditionCheck;
     }
 
-    //for tests
-    private static void printLists(List<String> id, List<Date> dateAq, List<Date> dateVC) {
-        for (int n=0; n < id.size();n++) {
-            System.out.print(id.get(n) + "  " + dateAq.get(n) + "  " + dateVC.get(n));
-            System.out.println();
-        }System.out.println();
-    }
-
-    public static boolean checkRestrictionIntervencao() throws SQLException {
-        //true if DB follows restriction
-        boolean conditionCheck = true;
-        String custoInt="select distinct on (id) valcusto from (ACTIVO inner join Intervencao on id=activo) where id = ? group by id, valcusto, noint order by id, valcusto desc";
+    public static void checkRestrictionIntervencao() throws SQLException {
+        //não retorna nenhum valor, pois verifica a restrição e corrige a automaticamente
+        String custoInt = "select distinct on (id) valcusto from (ACTIVO inner join Intervencao on id=activo) where id = ? group by id, valcusto, noint order by id, valcusto desc";
         String valCom = "select distinct on (activo) valor from vcomercial where activo = ? group by activo, dtvcomercial, valor order by activo, dtvcomercial desc";
         List<String> ativos = getIdAtivos();
         for (String s : ativos) {
@@ -165,13 +155,11 @@ public class queries {
             int custoIntervencao = pstQueryResInt(custoInt,s);
             //obter valor comercial atual
             int valorComercial = pstQueryResInt(valCom,s);
-            //System.out.println(s + "  custoInt = " + custoIntervencao + "  valorCom = " + valorComercial);
             if(custoIntervencao>valorComercial){
-                //System.out.println(s + "   estado = 0");
-                conditionCheck = false;
-                break;
+                pstUpdate("update intervencao set dtfim = current_date where activo = ?", s);
+                pstUpdate("update intervencao set estado = 'concluído' where activo = ?", s);
             }
-        }return conditionCheck;
+        }
     }
 
     public static void checkRestrictionIntervencaoDtFim() throws SQLException {
@@ -193,7 +181,7 @@ public class queries {
             int tipoChild = getIdTipoFromAtivo(s);
             int tipoParent = getIdTipoFromAtivo(ativoTopo);
             if(tipoChild!=tipoParent) {
-                // retifica a DB de acordo com a restrição substituindo o id do ativo filho pelo de topo
+                // retifica a DB conforme a restrição substituindo o id do ativo filho pelo de topo
                 // não é melhor solução, mas permite facilmente regularizar a DB
                 pstUpdate("update ACTIVO set tipo = ? where id = ?",tipoParent,s);
             }
@@ -212,10 +200,26 @@ public class queries {
         return conditionCheck;
     }
 
-    public static void checkRestrictionConflictGestaoMan() {
-
+    public static void checkRestrictionConflictGestaoMan() throws SQLException {
+        List<Integer> equipas = getEquipas();
+        List<Integer> gere = stQueryResListInt("select distinct on (pessoa) pessoa from ACTIVO");
+        for (int s: gere) {
+            //obter equipa a que pessoa s pertence
+            int equipa = pstQueryResInt("select equipa from PESSOA where id = ?",s);
+            int difEquipa = equipas.get(0);
+            if(difEquipa == equipa) difEquipa = equipas.get(1);
+            //obter ativos geridos pela pessoa s
+            List<String> geridos = pstQueryResListString("select id from ACTIVO where pessoa = ?",s);
+            for(String t:geridos){
+                String querry = "select noint from intervencao join inter_equipa on noint=intervencao where activo = ? and equipa = ?";
+                List<Integer> interv = pstQueryResListInt(querry,t,equipa);
+                for (int n: interv){
+                    pstUpdate("update inter_equipa set equipa = ? where intervencao = ?",difEquipa,n);
+                }
+            }
+        }
     }
-    //passamos estado = 1, pois definimos que este é o valor default do mesmo aquando da inserção de um novo ATIVO
+
     public static void novoAtivo(String nome, String dt, String marca, String modelo, String local, String idAtivoTp, int tipo, int empresa, int pessoa) throws SQLException {
         String newId = increaseId(stQueryResString("SELECT MAX(id) FROM ACTIVO"));
         try {
@@ -224,6 +228,7 @@ public class queries {
                     "VALUES (?,?,?::bit,?,?,?,?,?,?,?,?)");
             pstmt.setString(1, newId);
             pstmt.setString(2,nome);
+            //passamos estado = 1, pois definimos que este é o valor default do mesmo aquando da inserção de um novo ATIVO
             pstmt.setInt(3,1);
             pstmt.setDate(4, Date.valueOf(dt));
             pstmt.setString(5,marca);
@@ -242,53 +247,29 @@ public class queries {
     }
 
     public static void substituirElem(int idToReplaceOut, int idToReplaceIn) throws SQLException {
-        int equipa = getEquipaFromId(idToReplaceOut);
+        int equipa = pstQueryResInt("SELECT equipa FROM PESSOA WHERE id=?",idToReplaceOut);
         // verificação se a equipa do elemento que vai substituir vai ter o número mínimo de elementos
         // verificamos se a
-        if(!checkEquipasMinXElements(getEquipaFromId(idToReplaceIn),3)){
+        if(!checkEquipasMinXElements(pstQueryResInt("SELECT equipa FROM PESSOA WHERE id=?",idToReplaceIn),3)){
             System.out.println("Não é possível substituir pessoa");
             System.out.println("Equipa de elemento que iria substituir, seria reduzida a menos de 2 elementos");
             return;
         }
         pstUpdate("update PESSOA set equipa = null where id = ?",idToReplaceOut);
-        updateEquipaElem(idToReplaceIn,equipa);
+        pstUpdate("update PESSOA set equipa = ? where id = ?",equipa,idToReplaceIn);
     }
 
-    private static int getEquipaFromId(int id) throws SQLException {
-        int equipa = -1;
-        try {
-            connect();
-            pstmt = con.prepareStatement("SELECT equipa FROM PESSOA WHERE id=?");
-            pstmt.setInt(1, id);
-            rs = pstmt.executeQuery();
-            if(rs.next()) equipa = rs.getInt(1);
-        } catch (SQLException e) {e.printStackTrace();
-        } finally { closeConnection();}
-        return equipa;
-    }
-
-    private static void updateEquipaElem(int id, int equipa) throws SQLException {
-        try {
-            connect();
-            pstmt = con.prepareStatement("update PESSOA set equipa = ? where id = ?");
-            pstmt.setInt(1, equipa);
-            pstmt.setInt(2, id);
-            pstmt.executeUpdate();
-        } catch (SQLException e) {e.printStackTrace();
-        } finally { closeConnection();}
-    }
-
-    //activo fora de serviço == estado = 0?
-    //adicionar restrição ACTIVO estado=0 n sofre intervenções
-    //limpar intervenções? passar para concluido
     public static void ativoForaServico(String idActivo) throws SQLException {
+        //ativo fora de serviço estado = 0
         pstUpdate("update ACTIVO set estado = '0' where id = ?",idActivo);
+        //limpar intervenções passar para concluído
+        pstUpdate("update intervencao set estado = 'concluído' where activo = ?",idActivo);
     }
 
     //partimos do pressuposto que o activo tem um valor comercial estipulado na data de aquisição
     public static int custoTotalAtivo(String id) throws SQLException {
-        int custoAquisicao = pstQueryResInt("select distinct on (id) valor\n" +
-                "from (ACTIVO inner join VCOMERCIAL on id = VCOMERCIAL.activo) where id = ?\n" +
+        int custoAquisicao = pstQueryResInt("select distinct on (id) valor " +
+                "from (ACTIVO inner join VCOMERCIAL on id = VCOMERCIAL.activo) where id = ? " +
                 "group by id, nome,valor,dtvcomercial order by id, dtvcomercial asc",id);
         int custoIntervencao = pstQueryResInt("select sum(valcusto) from (INTERVENCAO right outer join ACTIVO" +
                 " on INTERVENCAO.activo = ACTIVO.id) where id = ?", id);
@@ -303,7 +284,7 @@ public class queries {
                 "on INTERVENCAO.activo=ACTIVO.id) where ((INTERVENCAO.estado " +
                 "IN ('em execução','em análise')) and ACTIVO.nome = ?) " +
                 "union select ACTIVO.nome, PESSOA.equipa, PESSOA.nome from (PESSOA full outer join ACTIVO " +
-                "on PESSOA.id=ACTIVO.pessoa) where ACTIVO.nome = ?",id,2,3);
+                "on PESSOA.id=ACTIVO.pessoa) where ACTIVO.nome = ?",id,2,3,"ativo  equipa  pessoa");
     }
 
     public static void query2e(String nome) throws SQLException {
@@ -311,36 +292,30 @@ public class queries {
                 " P.nome = ? union select ACTIVO.nome as nomeInterv from " +
                 "(ACTIVO inner join INTERVENCAO on ACTIVO.id = INTERVENCAO.activo inner join " +
                 "INTER_EQUIPA on INTERVENCAO.noint = INTER_EQUIPA.intervencao inner join PESSOA " +
-                "on INTER_EQUIPA.equipa = PESSOA.equipa) where PESSOA.nome =?", nome,2,1);
+                "on INTER_EQUIPA.equipa = PESSOA.equipa) where PESSOA.nome =?", nome,2,1,"ativo");
     }
 
     public static void query3c() throws SQLException {
         stQueryResPrint("select DISTINCT PESSOA.nome, profissao, telefone from (PESSOA " +
                 "left outer join TEL_PESSOA on PESSOA.id=TEL_PESSOA.pessoa inner join ACTIVO " +
-                "on PESSOA.id=ACTIVO.pessoa)",3);
-
+                "on PESSOA.id=ACTIVO.pessoa)",3,"pessoa  profissão  telefone");
     }
 
-    //does not work
     public static void query3d(String period, int amount) throws SQLException {
-        /*String intervalMin = "" + amount + " " + period;
+        String intervalMin = "" + amount + " " + period;
         amount++;
-        String intervalMax = "" + amount + " " + period;*/
-        String intervalMin = "1 month";
-        String intervalMax = "2 month";
-
+        String intervalMax = "" + amount + " " + period;
         try {
             connect();
-            pstmt = con.prepareStatement("select noint from (INTERVENCAO join INTER_EQUIPA " +
-                    "on INTERVENCAO.noint=INTER_EQUIPA.intervencao) where dtinicio between " +
-                    "date_trunc(?, CURRENT_DATE + interval ? ) and date_trunc(?, " +
-                    "CURRENT_DATE + interval ?)");
+            pstmt = con.prepareStatement("select noint from INTERVENCAO where dtinicio between " +
+                    "date_trunc(?, CURRENT_DATE + ?::interval) and " +
+                    "date_trunc(?, CURRENT_DATE + ?::interval)");
             pstmt.setString(1, period);
             pstmt.setString(2, intervalMin);
             pstmt.setString(3, period);
             pstmt.setString(4, intervalMax);
             rs = pstmt.executeQuery();
-            App.printTable(rs,1);
+            App.printTable(rs,1, "Número Intervenção");
         } catch (SQLException e) {e.printStackTrace();
         } finally { closeConnection();}
     }
@@ -357,24 +332,12 @@ public class queries {
         return res;
     }
 
-    private static int stQueryResInt(String query) throws SQLException {
-        int res = -1;
+    private static void stQueryResPrint(String query,int numCols, String header) throws SQLException {
         try {
             connect();
             stmt = con.createStatement();
             rs = stmt.executeQuery(query);
-            if (rs.next()) res = rs.getInt(1);
-        } catch (SQLException e) {e.printStackTrace();
-        } finally { closeConnection();}
-        return res;
-    }
-
-    private static void stQueryResPrint(String query,int numCols) throws SQLException {
-        try {
-            connect();
-            stmt = con.createStatement();
-            rs = stmt.executeQuery(query);
-            App.printTable(rs,numCols);
+            App.printTable(rs,numCols,header);
         } catch (SQLException e) {e.printStackTrace();
         } finally { closeConnection();}
     }
@@ -398,7 +361,7 @@ public class queries {
             connect();
             pstmt = con.prepareStatement(query);
             pstmt.setInt(1, val);
-            pstmt.executeQuery();
+            rs = pstmt.executeQuery();
             if(rs.next()) res = rs.getInt(1);
         } catch (SQLException e) {e.printStackTrace();
         } finally { closeConnection();}
@@ -431,19 +394,32 @@ public class queries {
         return res;
     }
 
-    private static void pstQueryResPrint(String query, String val, int numEqualFields, int numCols) throws SQLException {
+    private static void pstQueryResPrint(String query, String val, int numEqualFields, int numCols, String header) throws SQLException {
         try {
             connect();
             pstmt = con.prepareStatement(query);
             for(int n=1;n<=numEqualFields;n++)pstmt.setString(n, val);
             rs = pstmt.executeQuery();
-            App.printTable(rs,numCols);
+            App.printTable(rs,numCols, header);
         } catch (SQLException e) {e.printStackTrace();
         } finally { closeConnection();}
     }
 
+    public static List<String> pstQueryResListString(String query, int val) throws SQLException {
+        List<String> res = new ArrayList<>();
+        try {
+            connect();
+            pstmt = con.prepareStatement(query);
+            pstmt.setInt(1, val);
+            rs = pstmt.executeQuery();
+            for(int n=0; rs.next(); n++) {res.add(rs.getString(1));}
+        } catch (SQLException e) {e.printStackTrace();
+        } finally { closeConnection();}
+        return res;
+    }
+
     public static List<String> stQueryResListString(String query) throws SQLException {
-        List<String> res = new ArrayList<String>();
+        List<String> res = new ArrayList<>();
         try {
             connect();
             stmt = con.createStatement();
@@ -454,8 +430,22 @@ public class queries {
         return res;
     }
 
+    public static List<Integer> pstQueryResListInt(String query, String val1, int val2) throws SQLException {
+        List<Integer> res = new ArrayList<>();
+        try {
+            connect();
+            pstmt = con.prepareStatement(query);
+            pstmt.setString(1, val1);
+            pstmt.setInt(2, val2);
+            rs = pstmt.executeQuery();
+            for(int n=0; rs.next(); n++) {res.add(rs.getInt(1));}
+        } catch (SQLException e) {e.printStackTrace();
+        } finally { closeConnection();}
+        return res;
+    }
+
     public static List<Integer> stQueryResListInt(String query) throws SQLException {
-        List<Integer> res = new ArrayList<Integer>();
+        List<Integer> res = new ArrayList<>();
         try {
             connect();
             stmt = con.createStatement();
@@ -492,6 +482,17 @@ public class queries {
             pstmt = con.prepareStatement(query);
             pstmt.setInt(1, firstVal);
             pstmt.setString(2, secondVal);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {e.printStackTrace();
+        } finally { closeConnection();}
+    }
+
+    private static void pstUpdate(String query, int firstVal,  int secondVal) throws SQLException {
+        try {
+            connect();
+            pstmt = con.prepareStatement(query);
+            pstmt.setInt(1, firstVal);
+            pstmt.setInt(2, secondVal);
             pstmt.executeUpdate();
         } catch (SQLException e) {e.printStackTrace();
         } finally { closeConnection();}
